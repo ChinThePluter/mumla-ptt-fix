@@ -88,6 +88,8 @@
     <string name="connecting">Connecting</string>
     <string name="connecting_to_server">Connecting to %s…</string>
     <string name="ptt">Push-to-talk</string>
+    <string name="pttAccessibilityLabel">Mumla background PTT key</string>
+    <string name="pttAccessibilityDescription">Lets the hardware push-to-talk key toggle your microphone even when Mumla is in the background or the screen is off. Enable this only if your device has a hardware PTT button. Set which key to use under Settings &gt; Audio &gt; Push-to-talk key.</string>
     <string name="mute">Mute</string>
     <string name="deafen">Deafen</string>
     <string name="disconnect">Disconnect</string>

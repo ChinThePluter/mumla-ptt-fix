@@ -117,6 +117,10 @@ android {
         }
         debug {
             versionNameSuffix "-debug"
+            // Personal "S12 Mumla" build: use a distinct applicationId so it can
+            // be installed side-by-side with an upstream Mumla (se.lublin.mumla)
+            // without a signature/package clash. Only affects debug builds.
+            applicationIdSuffix ".s12"
             if (android.hasProperty("signingConfigs")) {
                 if (signingConfigs.hasProperty("beta")) {
                     signingConfig = signingConfigs.beta

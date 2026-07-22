@@ -88,6 +88,25 @@
             android:enabled="true"
             android:foregroundServiceType="microphone" />
 
+        <!--
+          ~ Optional add-on: makes the hardware push-to-talk key work when Mumla
+          ~ is in the background or the screen is off. Disabled until the user
+          ~ turns it on under Settings > Accessibility. See
+          ~ MumlaPTTAccessibilityService for details.
+          -->
+        <service
+            android:name=".service.MumlaPTTAccessibilityService"
+            android:exported="true"
+            android:label="@string/pttAccessibilityLabel"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/ptt_accessibility_service" />
+        </service>
+
         <activity
             android:name=".app.MumlaActivity"
             android:label="@string/app_name"

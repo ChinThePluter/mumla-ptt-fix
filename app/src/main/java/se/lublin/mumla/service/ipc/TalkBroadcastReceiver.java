@@ -21,8 +21,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-import se.lublin.humla.IHumlaService;
 import se.lublin.humla.IHumlaSession;
+import se.lublin.mumla.service.IMumlaService;
 
 /**
  * Created by andrew on 08/08/14.
@@ -33,21 +33,39 @@ public class TalkBroadcastReceiver extends BroadcastReceiver {
     public static final String TALK_STATUS_ON = "on";
     public static final String TALK_STATUS_OFF = "off";
     public static final String TALK_STATUS_TOGGLE = "toggle";
+    // Forward a raw hardware-key press/release through the exact same code path
+    // as MumlaActivity's onKeyDown()/onKeyUp(), so the user's PTT settings
+    // (toggle mode, input method) are respected. Used by
+    // MumlaPTTAccessibilityService to make the PTT key work with the screen off.
+    public static final String TALK_STATUS_KEY_DOWN = "keydown";
+    public static final String TALK_STATUS_KEY_UP = "keyup";
 
-    private IHumlaService mService;
+    private IMumlaService mService;
 
-    public TalkBroadcastReceiver(IHumlaService service) {
+    public TalkBroadcastReceiver(IMumlaService service) {
         mService = service;
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if (BROADCAST_TALK.equals(intent.getAction())) {
+            String status = intent.getStringExtra(EXTRA_TALK_STATUS);
+            if (status == null) status = TALK_STATUS_TOGGLE;
+
+            // Key-event forwarding path (from MumlaPTTAccessibilityService):
+            // delegate to the same handlers as a foreground hardware key press.
+            // These already no-op safely when not connected or not in PTT mode.
+            if (TALK_STATUS_KEY_DOWN.equals(status)) {
+                mService.onTalkKeyDown();
+                return;
+            } else if (TALK_STATUS_KEY_UP.equals(status)) {
+                mService.onTalkKeyUp();
+                return;
+            }
+
             if (!mService.isConnected())
                 return;
             IHumlaSession session = mService.HumlaSession();
-            String status = intent.getStringExtra(EXTRA_TALK_STATUS);
-            if (status == null) status = TALK_STATUS_TOGGLE;
             if (TALK_STATUS_ON.equals(status)) {
                 session.setTalkingState(true);
             } else if (TALK_STATUS_OFF.equals(status)) {
