@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Debug-only override. Debug builds use applicationId se.lublin.mumla.s12
+  ~ (see app/build.gradle) so the search-suggestion authority must match the
+  ~ per-applicationId ChannelSearchProvider authority declared via
+  ~ ${applicationId} in the foss manifest. Resource XML cannot use the
+  ~ ${applicationId} placeholder, so the value is spelled out here.
+  -->
+<searchable xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/app_name"
+    android:hint="@string/searchHint"
+    android:searchSuggestAuthority="se.lublin.mumla.s12.channel.ChannelSearchProvider"
+    android:searchSuggestSelection=" ?"
+    android:searchSuggestThreshold="1"
+    android:searchSuggestIntentAction="android.intent.action.SEARCH"
+    android:inputType="textNoSuggestions"
+    android:imeOptions="actionNone">
+</searchable>
