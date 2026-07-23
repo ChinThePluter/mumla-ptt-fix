@@ -8,40 +8,44 @@
 #      (by inserting into the app's SQLite DB via run-as; works because the
 #       debug build is debuggable).
 #
-# Usage:  either edit the CONFIG block below, or pass values as env vars, then:
-#           ./install-and-add-server.sh
-#
-# CREDENTIALS: prefer env vars so this tracked file stays free of secrets, e.g.:
-#   SERVER_HOST=my.host SERVER_USERNAME=me SERVER_PASSWORD=secret \
-#     ./install-and-add-server.sh
-#   If you edit the values inline below instead, do NOT commit that change.
+# Your server details (including credentials) go in a SEPARATE file so they
+# stay out of git:  copy  server-config.example.sh  ->  server-config.sh  and
+# edit it.  server-config.sh is gitignored.  Environment variables of the same
+# name also work and take precedence over the config file.
 #
 set -euo pipefail
 
-# ===========================================================================
-# CONFIG — edit these, or override any of them via environment variables.
-# ===========================================================================
-SERVER_NAME="${SERVER_NAME:-My Mumble Server}"      # label shown in the favourites list
-SERVER_HOST="${SERVER_HOST:-mumble.example.com}"    # server address or IP
-SERVER_PORT="${SERVER_PORT:-64738}"                 # Mumble default port is 64738
-SERVER_USERNAME="${SERVER_USERNAME:-myname}"        # your Mumble nickname (REQUIRED to connect)
-SERVER_PASSWORD="${SERVER_PASSWORD:-}"              # server password (leave empty if none)
-
-# Which app + APK to install. Defaults to the freshly-built fossDebug APK.
-PKG="se.lublin.mumla.s12"
-APK_PATH="${APK_PATH:-app/build/outputs/apk/foss/debug/mumla-foss-debug.apk}"
-
-# adb location (installed with the Android SDK; not on PATH by default).
-ADB="${ADB:-/opt/homebrew/share/android-commandlinetools/platform-tools/adb}"
-# ===========================================================================
-
-DB="databases/mumble.db"   # relative to the app data dir (run-as runs there)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
 log(){ printf '\033[1;36m[*]\033[0m %s\n' "$*"; }
 err(){ printf '\033[1;31m[!]\033[0m %s\n' "$*" >&2; }
 
-# Run from the script's own directory so the default APK_PATH resolves.
-cd "$(dirname "$0")"
+# --- load server details ---------------------------------------------------
+# Precedence: environment variable > server-config.sh > built-in default.
+CONFIG_FILE="${CONFIG_FILE:-$SCRIPT_DIR/server-config.sh}"
+if [ -f "$CONFIG_FILE" ]; then
+  # Preserve anything already set in the environment so it wins over the file.
+  _n="${SERVER_NAME-}"; _h="${SERVER_HOST-}"; _p="${SERVER_PORT-}"
+  _u="${SERVER_USERNAME-}"; _w="${SERVER_PASSWORD-}"
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  [ -n "$_n" ] && SERVER_NAME="$_n";     [ -n "$_h" ] && SERVER_HOST="$_h"
+  [ -n "$_p" ] && SERVER_PORT="$_p";     [ -n "$_u" ] && SERVER_USERNAME="$_u"
+  [ -n "$_w" ] && SERVER_PASSWORD="$_w"
+fi
+SERVER_NAME="${SERVER_NAME:-My Mumble Server}"
+SERVER_HOST="${SERVER_HOST:-mumble.example.com}"
+SERVER_PORT="${SERVER_PORT:-64738}"
+SERVER_USERNAME="${SERVER_USERNAME:-myname}"
+SERVER_PASSWORD="${SERVER_PASSWORD:-}"
+
+# App / APK / adb (not secret).
+PKG="se.lublin.mumla.s12"
+APK_PATH="${APK_PATH:-app/build/outputs/apk/foss/debug/mumla-foss-debug.apk}"
+ADB="${ADB:-/opt/homebrew/share/android-commandlinetools/platform-tools/adb}"
+
+DB="databases/mumble.db"   # relative to the app data dir (run-as runs there)
 
 # --- sanity checks ---------------------------------------------------------
 if [ ! -x "$ADB" ]; then
@@ -51,6 +55,10 @@ fi
 [ -f "$APK_PATH" ] || { err "APK not found: $APK_PATH  (build it, or set APK_PATH=...)"; exit 1; }
 command -v sqlite3 >/dev/null 2>&1 || { err "sqlite3 not found on this Mac"; exit 1; }
 case "$SERVER_PORT" in ''|*[!0-9]*) err "SERVER_PORT must be a number"; exit 1;; esac
+if [ -z "$SERVER_HOST" ] || [ "$SERVER_HOST" = "mumble.example.com" ]; then
+  err "No server configured — copy server-config.example.sh to server-config.sh and edit it (or set SERVER_HOST/SERVER_USERNAME/... as env vars)."
+  exit 1
+fi
 
 # --- 1) wait for an authorized device -------------------------------------
 log "Waiting for device over adb — plug in USB, enable USB debugging, tap 'Allow'..."

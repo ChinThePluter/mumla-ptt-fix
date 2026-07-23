@@ -16,5 +16,8 @@ gen/
 local.properties
 *.apk
 
+# Local server credentials for install-and-add-server.sh (keep out of git)
+server-config.sh
+
 # Java
 *.class
