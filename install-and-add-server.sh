@@ -83,8 +83,10 @@ log "Installing $APK_PATH ..."
 log "Launching the app once so it creates its database..."
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
 ok=0
-for _ in $(seq 1 20); do
-  if "$ADB" shell run-as "$PKG" test -f "$DB" 2>/dev/null; then ok=1; break; fi
+for _ in $(seq 1 30); do
+  # NB: `run-as PKG test ...` fails on some devices (SELinux denies exec'ing the
+  # toybox `test` applet), so probe with `ls`, which is a plain binary.
+  if "$ADB" shell run-as "$PKG" ls "$DB" >/dev/null 2>&1; then ok=1; break; fi
   sleep 1
 done
 "$ADB" shell am force-stop "$PKG" >/dev/null 2>&1 || true
@@ -101,33 +103,34 @@ VALUES ('$N', '$H', $SERVER_PORT, '$U', '$P');"
 
 log "Adding server '$SERVER_NAME' ($SERVER_HOST:$SERVER_PORT) as user '$SERVER_USERNAME'..."
 
-if "$ADB" shell run-as "$PKG" sh -c 'command -v sqlite3' >/dev/null 2>&1; then
-  # Fast path: the device has sqlite3 — edit the DB in place.
-  printf '%s\n' "$SQL" | "$ADB" shell run-as "$PKG" sqlite3 "$DB"
-else
-  # Portable path: pull the DB, edit it here (macOS has sqlite3), write it back.
-  TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-  log "  (device has no sqlite3 — editing a pulled copy)"
-  "$ADB" exec-out run-as "$PKG" cat "$DB" > "$TMP/mumble.db"
-  # Fold any WAL into the main file so a single file carries all data.
-  "$ADB" exec-out run-as "$PKG" sh -c "cat ${DB}-wal 2>/dev/null" > "$TMP/mumble.db-wal" 2>/dev/null || true
-  [ -s "$TMP/mumble.db-wal" ] || rm -f "$TMP/mumble.db-wal"
-  printf 'PRAGMA journal_mode=DELETE;\n%s\n' "$SQL" | sqlite3 "$TMP/mumble.db"
-  # Write back within the app's own domain, then verify the byte count.
-  "$ADB" shell run-as "$PKG" rm -f "${DB}-wal" "${DB}-shm" 2>/dev/null || true
-  "$ADB" shell run-as "$PKG" sh -c "cat > $DB" < "$TMP/mumble.db"
-  lsz="$(wc -c < "$TMP/mumble.db" | tr -d ' ')"
-  dsz="$("$ADB" exec-out run-as "$PKG" sh -c "wc -c < $DB" | tr -d ' \r')"
-  [ "$lsz" = "$dsz" ] || { err "DB write size mismatch (local=$lsz device=$dsz)"; exit 1; }
+# Pull the DB, edit it on this Mac (which always has sqlite3), write it back.
+# We avoid `run-as ... sh -c '...'` and shell redirection (adb re-splits the
+# arguments) and the on-device sqlite3 (often absent). cat/cp/ls are plain
+# binaries that work under run-as.
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+"$ADB" exec-out run-as "$PKG" cat "$DB" > "$TMP/mumble.db"
+[ -s "$TMP/mumble.db" ] || { err "Could not read the app database."; exit 1; }
+printf 'PRAGMA journal_mode=DELETE;\n%s\n' "$SQL" | sqlite3 "$TMP/mumble.db"
+
+# Write it back into the app's private dir: push to a world-readable tmp, then
+# copy it in as the app uid (dd-from-stdin as a fallback if run-as cp is denied).
+"$ADB" push "$TMP/mumble.db" /data/local/tmp/mumla_add.db >/dev/null
+"$ADB" shell chmod 644 /data/local/tmp/mumla_add.db
+if ! "$ADB" shell run-as "$PKG" cp /data/local/tmp/mumla_add.db "$DB" 2>/dev/null; then
+  "$ADB" shell run-as "$PKG" dd "of=$DB" < "$TMP/mumble.db" >/dev/null 2>&1
+fi
+"$ADB" shell run-as "$PKG" rm -f "${DB}-journal" "${DB}-wal" "${DB}-shm" 2>/dev/null || true
+"$ADB" shell rm -f /data/local/tmp/mumla_add.db 2>/dev/null || true
+
+# Verify the row actually landed in the on-device DB.
+"$ADB" exec-out run-as "$PKG" cat "$DB" > "$TMP/verify.db"
+if ! sqlite3 "$TMP/verify.db" "SELECT 1 FROM server WHERE host='$H' AND port=$SERVER_PORT AND name='$N' LIMIT 1;" | grep -q 1; then
+  err "Server row not found after write — the DB update did not stick."; exit 1
 fi
 
 # --- 4) show result + launch ----------------------------------------------
 log "Favourite servers now stored in the app:"
-if "$ADB" shell run-as "$PKG" sh -c 'command -v sqlite3' >/dev/null 2>&1; then
-  "$ADB" shell run-as "$PKG" sqlite3 "$DB" 'SELECT _id, name, host, port, username FROM server;' | sed 's/^/    /'
-else
-  sqlite3 "$TMP/mumble.db" 'SELECT _id, name, host, port, username FROM server;' | sed 's/^/    /'
-fi
+sqlite3 "$TMP/verify.db" 'SELECT _id, name, host, port, username FROM server;' | sed 's/^/    /'
 
 log "Launching S12 Mumla..."
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
