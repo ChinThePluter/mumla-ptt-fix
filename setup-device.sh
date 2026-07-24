@@ -70,6 +70,25 @@ push_in(){ # $1 = local file, $2 = destination path in app dir
     || "$ADB" shell run-as "$PKG" dd "of=$2" < "$1" >/dev/null 2>&1
   "$ADB" shell rm -f /data/local/tmp/.mumla_push 2>/dev/null || true
 }
+# Force-stop AND wait for the process to actually die. Critical before editing
+# shared_prefs: a still-alive process holds the old prefs in memory and will
+# flush them back over our file the next time it writes (seen on slow devices).
+stop_app(){
+  "$ADB" shell am force-stop "$PKG" >/dev/null 2>&1 || true
+  for _ in $(seq 1 15); do
+    [ -z "$("$ADB" shell pidof "$PKG" 2>/dev/null | tr -d '\r\n ')" ] && return 0
+    sleep 1
+  done
+  return 0
+}
+# Rewrite the three PTT prefs in a pulled prefs file (in $TMP), keeping the rest.
+set_ptt_prefs(){ # $1 = local prefs xml
+  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' "$1"
+  sed -i '' -e 's#</map>#    <string name="audioInputMethod">ptt</string>\
+    <int name="talkKey" value="'"$PTT_KEYCODE"'" />\
+    <boolean name="hidePtt" value="'"$HIDE_ONSCREEN_PTT"'" />\
+</map>#' "$1"
+}
 
 # --- 1) wait for device ----------------------------------------------------
 log "Waiting for device over adb — plug in USB, enable USB debugging, tap 'Allow'..."
@@ -101,9 +120,8 @@ for _ in $(seq 1 30); do
   if have "$DB" && pull "$PREFS" 2>/dev/null | grep -q 'name="certificateId"'; then ok=1; break; fi
   sleep 1
 done
-"$ADB" shell am force-stop "$PKG" >/dev/null 2>&1 || true
+stop_app   # wait until the process is really gone before touching the DB / prefs
 [ "$ok" = 1 ] || { err "Certificate/database not initialized. Open the app once, then re-run."; exit 1; }
-sleep 1
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
@@ -121,20 +139,25 @@ push_in "$TMP/mumble.db" "$DB"
 # --- 5) push-to-talk + PTT key --------------------------------------------
 log "Setting push-to-talk (key $PTT_KEYCODE=F12), hide on-screen talk button = $HIDE_ONSCREEN_PTT..."
 pull "$PREFS" > "$TMP/p.xml"
-sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' "$TMP/p.xml"
-sed -i '' -e 's#</map>#    <string name="audioInputMethod">ptt</string>\
-    <int name="talkKey" value="'"$PTT_KEYCODE"'" />\
-    <boolean name="hidePtt" value="'"$HIDE_ONSCREEN_PTT"'" />\
-</map>#' "$TMP/p.xml"
+set_ptt_prefs "$TMP/p.xml"
 push_in "$TMP/p.xml" "$PREFS"
 
-# --- 6) verify + launch ----------------------------------------------------
+# --- 6) launch fresh, then make sure the prefs stuck ----------------------
+stop_app   # guarantee a clean process so the launch reads our file, not a stale map
+"$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+sleep 4
+if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talkKey"|name="hidePtt"')" != 3 ]; then
+  log "App re-flushed prefs on launch — re-applying and leaving the app closed."
+  stop_app
+  pull "$PREFS" > "$TMP/p.xml"; set_ptt_prefs "$TMP/p.xml"; push_in "$TMP/p.xml" "$PREFS"
+fi
+
+# --- report ---------------------------------------------------------------
 pull "$DB" > "$TMP/v.db"
 log "Result:"
 sqlite3 "$TMP/v.db" 'SELECT "    server: "||name||"  "||host||":"||port||"  user="||username FROM server;'
 sqlite3 "$TMP/v.db" 'SELECT "    cert:   id "||_id||"  "||name FROM certificates;'
 echo "    prefs:"; pull "$PREFS" | grep -E 'audioInputMethod|talkKey|hidePtt|certificateId' | sed 's/^/      /'
-"$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
 
 cat <<EOF
 
