@@ -38,6 +38,7 @@ SERVER_PORT="${SERVER_PORT:-64738}"
 SERVER_USERNAME="${SERVER_USERNAME:-myname}"
 SERVER_PASSWORD="${SERVER_PASSWORD:-}"
 PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
+HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 
 PKG="se.lublin.mumla.s12"
 APK_PATH="${APK_PATH:-app/build/outputs/apk/foss/debug/mumla-foss-debug.apk}"
@@ -52,6 +53,7 @@ GEN_ACT="$PKG/se.lublin.mumla.preference.CertificateGenerateActivity"
 command -v sqlite3 >/dev/null 2>&1 || { err "sqlite3 not found on this Mac"; exit 1; }
 case "$SERVER_PORT" in ''|*[!0-9]*) err "SERVER_PORT must be numeric"; exit 1;; esac
 case "$PTT_KEYCODE" in ''|*[!0-9]*) err "PTT_KEYCODE must be numeric"; exit 1;; esac
+case "$HIDE_ONSCREEN_PTT" in true|false) ;; *) err "HIDE_ONSCREEN_PTT must be true or false"; exit 1;; esac
 if [ -z "$SERVER_HOST" ] || [ "$SERVER_HOST" = "mumble.example.com" ]; then
   err "No server configured — copy server-config.example.sh to server-config.sh and edit it (or set SERVER_HOST etc.)."; exit 1
 fi
@@ -117,11 +119,12 @@ push_in "$TMP/mumble.db" "$DB"
 "$ADB" shell run-as "$PKG" rm -f "${DB}-journal" "${DB}-wal" "${DB}-shm" 2>/dev/null || true
 
 # --- 5) push-to-talk + PTT key --------------------------------------------
-log "Setting input method = push-to-talk, PTT key = $PTT_KEYCODE (F12=142)..."
+log "Setting push-to-talk (key $PTT_KEYCODE=F12), hide on-screen talk button = $HIDE_ONSCREEN_PTT..."
 pull "$PREFS" > "$TMP/p.xml"
-sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' "$TMP/p.xml"
+sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' "$TMP/p.xml"
 sed -i '' -e 's#</map>#    <string name="audioInputMethod">ptt</string>\
     <int name="talkKey" value="'"$PTT_KEYCODE"'" />\
+    <boolean name="hidePtt" value="'"$HIDE_ONSCREEN_PTT"'" />\
 </map>#' "$TMP/p.xml"
 push_in "$TMP/p.xml" "$PREFS"
 
@@ -130,12 +133,13 @@ pull "$DB" > "$TMP/v.db"
 log "Result:"
 sqlite3 "$TMP/v.db" 'SELECT "    server: "||name||"  "||host||":"||port||"  user="||username FROM server;'
 sqlite3 "$TMP/v.db" 'SELECT "    cert:   id "||_id||"  "||name FROM certificates;'
-echo "    prefs:"; pull "$PREFS" | grep -E 'audioInputMethod|talkKey|certificateId' | sed 's/^/      /'
+echo "    prefs:"; pull "$PREFS" | grep -E 'audioInputMethod|talkKey|hidePtt|certificateId' | sed 's/^/      /'
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
 
 cat <<EOF
 
-[✓] Device provisioned: server + certificate + push-to-talk on F12.
+[✓] Device provisioned: server + certificate + push-to-talk on F12
+    (on-screen talk button hidden).
 
 Still to enable by hand (once) for PTT with the screen off:
   • Settings > Accessibility > "S12 Mumla background PTT key" -> ON
