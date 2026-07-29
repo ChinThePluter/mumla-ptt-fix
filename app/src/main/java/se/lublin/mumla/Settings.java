@@ -138,6 +138,10 @@ public class Settings {
     public static final String PREF_HANDSET_MODE = "handset_mode";
     public static final boolean DEFAULT_HANDSET_MODE = false;
 
+    /** Power the mic down while push-to-talk is released, to save battery. */
+    public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";
+    public static final boolean DEFAULT_SUSPEND_MIC_IDLE = true;
+
     public static final String PREF_PTT_SOUND = "ptt_sound";
     public static final boolean DEFAULT_PTT_SOUND = false;
 
@@ -352,6 +356,10 @@ public class Settings {
 
     public boolean isHandsetMode() {
         return preferences.getBoolean(PREF_HANDSET_MODE, DEFAULT_HANDSET_MODE);
+    }
+
+    public boolean isSuspendMicWhileIdle() {
+        return preferences.getBoolean(PREF_SUSPEND_MIC_IDLE, DEFAULT_SUSPEND_MIC_IDLE);
     }
 
     public boolean isPttSoundEnabled() {

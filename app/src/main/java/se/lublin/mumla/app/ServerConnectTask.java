@@ -84,6 +84,7 @@ public class ServerConnectTask extends AsyncTask<Server, Void, Intent> {
         connectIntent.putExtra(HumlaService.EXTRAS_HALF_DUPLEX, mSettings.isHalfDuplex());
         connectIntent.putExtra(HumlaService.EXTRAS_ENABLE_PREPROCESSOR, mSettings.isPreprocessorEnabled());
         connectIntent.putExtra(HumlaService.EXTRAS_ECHO_CANCELLATION_METHOD, mSettings.getEchoCancellationMethod());
+        connectIntent.putExtra(HumlaService.EXTRAS_SUSPEND_MIC_IDLE, mSettings.isSuspendMicWhileIdle());
         if (server.isSaved()) {
             ArrayList<Integer> muteHistory = (ArrayList<Integer>) mDatabase.getLocalMutedUsers(server.getId());
             ArrayList<Integer> ignoreHistory = (ArrayList<Integer>) mDatabase.getLocalIgnoredUsers(server.getId());

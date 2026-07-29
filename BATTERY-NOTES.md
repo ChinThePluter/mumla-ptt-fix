@@ -1,50 +1,56 @@
-# Battery experiment: suspend mic while PTT idle (`battery-mic-idle` branch)
+# Battery-saving notes
 
-Experimental branch to test whether powering down the microphone while the
-push-to-talk button is released improves battery life on the Hytera PNC550,
-**without affecting voice** (receiving is untouched; transmitted audio quality
-is unchanged).
+Battery tweaks for the S12 Mumla build on the Hytera POC radios. All of this is
+now on `master` (there is no separate branch). Receiving audio is never affected
+by any of it.
 
-## What changed
-All changes are in the `humla` submodule (branch `battery-mic-idle`, commit
-recorded by this repo's `battery-mic-idle` branch):
+## 1. Suspend the mic while push-to-talk is released
+Powers the microphone (audio HAL) down whenever PTT is released, instead of
+keeping it capturing-and-discarding for the whole session.
 
-- `audio/inputmode/IInputMode.java` — new `canSuspendInputWhileIdle()` (default `false`).
-- `audio/inputmode/ToggleInputMode.java` — returns `true` (PTT only).
-- `audio/AudioInput.java` — `suspendRecording()` / `resumeRecording()` stop/start the
-  `AudioRecord` (mic HAL) without releasing it.
-- `protocol/AudioHandler.java` — in `onAudioInputReceived()`, suspend the mic before
-  blocking in `waitForInput()` and resume on the next press.
+- **User setting:** Settings → Audio → **"Power-save microphone"** (`suspend_mic_idle`),
+  **default ON**. Turn it off to get the stock always-on-mic behaviour.
+- **Scope:** only push-to-talk. Voice-activity and continuous modes keep the mic
+  running regardless of the setting (they must sample it to decide when to send).
+- **Where:** humla `AudioHandler.onAudioInputReceived()` calls
+  `AudioInput.suspendRecording()/resumeRecording()` (which `stop()/startRecording()`
+  the `AudioRecord` without releasing it). Gated by `IInputMode.canSuspendInputWhileIdle()`
+  (true only for `ToggleInputMode`) **and** the `suspendInputWhileIdle` flag, wired from
+  the app via `HumlaService.EXTRAS_SUSPEND_MIC_IDLE` ← `Settings.isSuspendMicWhileIdle()`.
+- **Takes effect on connect** (reconnect to apply a change to the setting).
 
-Before: in PTT mode the mic stayed powered the entire session (frames read and
-discarded while not talking). After: the mic is off whenever PTT is released.
-
-## Known tradeoff
+### Known tradeoff
 Restarting the mic on each press has a small warm-up (~tens of ms). If you press
 **and immediately** talk, the first fraction of a syllable can be clipped. Mitigate by
-the natural press-then-speak habit, or enable the PTT sound (Settings → Audio) so the
-beep covers the warm-up. **This is the thing to listen for when testing.**
+the natural press-then-speak habit, or enable the PTT beep (Settings → Audio) so the
+tone covers the warm-up. **This is the thing to listen for when testing.** If it bothers
+you, just turn "Power-save microphone" off.
 
-Note: the connection's `PARTIAL_WAKE_LOCK` is intentionally left in place — releasing it
-would risk missing incoming calls (a worse trade for a radio). That is a separate,
-riskier experiment.
+## 2. Ping the server every 10s instead of 5s
+humla `HumlaConnection` pings TCP+UDP on a fixed interval; raised from the stock 5s
+to `PING_INTERVAL_SECONDS = 10` (fewer radio wake-ups).
 
-## Build / install this branch
+- ⚠️ **Requires a matching server change:** the Mumble server's `timeout` (in
+  `mumble-server.ini` / `murmur.ini`) must be raised to **>= 30s** and the service
+  restarted. With the default 15s, a single lost ping at a 10s interval can disconnect
+  the client. All devices share one server, so set it once server-side.
+- Proportional to stock (5s ping / 15s timeout → 10s ping / 30s timeout): still 3 pings
+  before timeout, so packet-loss tolerance is unchanged.
+
+## Deliberately NOT changed
+The connection's 24/7 `PARTIAL_WAKE_LOCK` in `HumlaService` is left in place — releasing
+it would risk missing incoming calls (a worse trade for a radio). That is a separate,
+riskier experiment and the biggest remaining battery lever.
+
+## Build / install
+Standard build (humla is pinned to the personal fork `github.com/ChinThePluter/humla`,
+which carries these commits):
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@21
 export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
-git submodule update --init --recursive     # if humla isn't on battery-mic-idle
+git submodule update --init --recursive
 ./gradlew :app:assembleFossDebug
 /opt/homebrew/share/android-commandlinetools/platform-tools/adb install -r \
   app/build/outputs/apk/foss/debug/mumla-foss-debug.apk
 ```
-
-## Revert to the normal build
-```
-git checkout master
-git submodule update --init --recursive
-./gradlew :app:assembleFossDebug   # rebuild + reinstall
-```
-
-This branch is for local testing; the humla commit is local-only (not pushed to
-gitlab.com/quite/humla), so build it on this machine.
+Not yet field-tested by the user.
