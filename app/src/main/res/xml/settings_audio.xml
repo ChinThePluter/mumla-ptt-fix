@@ -39,7 +39,7 @@
         android:key="suspend_mic_idle"
         android:title="@string/suspendMicIdle"
         android:summary="@string/suspendMicIdleSum"
-        android:defaultValue="true"
+        android:defaultValue="false"
         app:iconSpaceReserved="false"/>
 
     <se.lublin.mumla.preference.SeekBarDialogPreference

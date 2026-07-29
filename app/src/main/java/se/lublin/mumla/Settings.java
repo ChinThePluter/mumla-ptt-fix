@@ -138,9 +138,9 @@ public class Settings {
     public static final String PREF_HANDSET_MODE = "handset_mode";
     public static final boolean DEFAULT_HANDSET_MODE = false;
 
-    /** Power the mic down while push-to-talk is released, to save battery. */
+    /** Power the mic down while push-to-talk is released, to save battery. Opt-in. */
     public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";
-    public static final boolean DEFAULT_SUSPEND_MIC_IDLE = true;
+    public static final boolean DEFAULT_SUSPEND_MIC_IDLE = false;
 
     public static final String PREF_PTT_SOUND = "ptt_sound";
     public static final boolean DEFAULT_PTT_SOUND = false;

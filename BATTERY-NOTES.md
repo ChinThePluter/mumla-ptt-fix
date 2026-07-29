@@ -9,7 +9,8 @@ Powers the microphone (audio HAL) down whenever PTT is released, instead of
 keeping it capturing-and-discarding for the whole session.
 
 - **User setting:** Settings → Audio → **"Power-save microphone"** (`suspend_mic_idle`),
-  **default ON**. Turn it off to get the stock always-on-mic behaviour.
+  **default OFF (opt-in)**. Turn it on to power the mic down while PTT is released
+  and save battery; leave it off for the stock always-on-mic behaviour.
 - **Scope:** only push-to-talk. Voice-activity and continuous modes keep the mic
   running regardless of the setting (they must sample it to decide when to send).
 - **Where:** humla `AudioHandler.onAudioInputReceived()` calls
