@@ -3,22 +3,30 @@
 # setup-device.sh — full one-shot provisioning for S12 Mumla on a fresh device.
 #
 # Waits for the device over adb, then:
-#   1. installs the S12 Mumla APK,
+#   1. removes the stock upstream Mumla, then (clean) installs the S12 Mumla APK,
 #   2. generates a client certificate and sets it as the default
 #      (needed on first connect; also initializes the app database),
 #   3. adds a Mumble server to the favourites,
 #   4. sets input method = push-to-talk (PTT key = F12), hides the on-screen
 #      talk button, sets the microphone volume, and enables handset mode,
-#   5. turns off the device lock screen (Screen lock = None), and
-#   6. launches the app.
+#   5. turns off the device lock screen (Screen lock = None),
+#   6. launches the app,
+#   7. enables the background-PTT accessibility service + battery whitelist so
+#      the hardware PTT key works with the screen off/locked, and
+#   8. neutralizes rival PTT apps (e.g. com.pocxin.ptt): persistently denies them
+#      RUN_IN_BACKGROUND (appops, survives reboot) and force-stops them, so they
+#      don't grab the key/audio/battery. Best-effort; the apps stay launchable.
 #
 # Server details come from server-config.sh (or env vars), same as
 # install-and-add-server.sh. Overridable: PTT_KEYCODE (default 142 = F12),
 # HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 25, in %),
-# HANDSET_MODE (default true), DISABLE_SCREEN_LOCK (default true).
+# HANDSET_MODE (default true), DISABLE_SCREEN_LOCK (default true),
+# ENABLE_BG_PTT (default true), CLEAN_REINSTALL (default true),
+# REMOVE_STOCK_MUMLA (default true), NEUTRALIZE_RIVAL_PTT (default true).
 #
-# It is idempotent: re-running keeps the existing certificate, de-dupes the
-# server, and just re-applies the PTT settings.
+# NB: with CLEAN_REINSTALL=true (default) the app is uninstalled before install,
+# so a fresh certificate is generated on every run. Set CLEAN_REINSTALL=false to
+# keep the existing app data (and certificate) across runs.
 #
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"; cd "$SCRIPT_DIR"
@@ -45,13 +53,20 @@ HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-25}"           # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"     # handset (phone earpiece) mode
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
+ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)
+CLEAN_REINSTALL="${CLEAN_REINSTALL:-true}"        # uninstall our app first, then install fresh (wipes cert/prefs)
+REMOVE_STOCK_MUMLA="${REMOVE_STOCK_MUMLA:-true}"  # uninstall the stock upstream Mumla if present
+NEUTRALIZE_RIVAL_PTT="${NEUTRALIZE_RIVAL_PTT:-true}" # background-restrict (appops) + force-stop rival PTT apps
 
 PKG="se.lublin.mumla.s12"
+STOCK_MUMLA="se.lublin.mumla"            # upstream Mumla (a different package from ours)
+RIVAL_PTT="${RIVAL_PTT:-com.pocxin.ptt com.hytalkpro.ocean}"  # competing PTT apps to force-stop
 APK_PATH="${APK_PATH:-app/build/outputs/apk/foss/debug/mumla-foss-debug.apk}"
 ADB="${ADB:-/opt/homebrew/share/android-commandlinetools/platform-tools/adb}"
 DB="databases/mumble.db"
 PREFS="shared_prefs/${PKG}_preferences.xml"
 GEN_ACT="$PKG/se.lublin.mumla.preference.CertificateGenerateActivity"
+A11Y_SVC="$PKG/se.lublin.mumla.service.MumlaPTTAccessibilityService"
 
 # --- sanity ----------------------------------------------------------------
 [ -x "$ADB" ] || { command -v adb >/dev/null 2>&1 && ADB=adb || { err "adb not found; set ADB=/path/to/adb"; exit 1; }; }
@@ -63,6 +78,10 @@ case "$HIDE_ONSCREEN_PTT" in true|false) ;; *) err "HIDE_ONSCREEN_PTT must be tr
 case "$MIC_VOLUME" in ''|*[!0-9]*) err "MIC_VOLUME must be numeric"; exit 1;; esac
 case "$HANDSET_MODE" in true|false) ;; *) err "HANDSET_MODE must be true or false"; exit 1;; esac
 case "$DISABLE_SCREEN_LOCK" in true|false) ;; *) err "DISABLE_SCREEN_LOCK must be true or false"; exit 1;; esac
+case "$ENABLE_BG_PTT" in true|false) ;; *) err "ENABLE_BG_PTT must be true or false"; exit 1;; esac
+case "$CLEAN_REINSTALL" in true|false) ;; *) err "CLEAN_REINSTALL must be true or false"; exit 1;; esac
+case "$REMOVE_STOCK_MUMLA" in true|false) ;; *) err "REMOVE_STOCK_MUMLA must be true or false"; exit 1;; esac
+case "$NEUTRALIZE_RIVAL_PTT" in true|false) ;; *) err "NEUTRALIZE_RIVAL_PTT must be true or false"; exit 1;; esac
 if [ -z "$SERVER_HOST" ] || [ "$SERVER_HOST" = "mumble.example.com" ]; then
   err "No server configured — copy server-config.example.sh to server-config.sh and edit it (or set SERVER_HOST etc.)."; exit 1
 fi
@@ -113,6 +132,12 @@ done
 log "Device: $("$ADB" shell getprop ro.product.model 2>/dev/null | tr -d '\r')"
 
 # --- 2) install ------------------------------------------------------------
+# Remove the stock upstream Mumla (se.lublin.mumla) — a different package we
+# don't use; keeps only our se.lublin.mumla.s12 on the device.
+if [ "$REMOVE_STOCK_MUMLA" = true ] && "$ADB" shell pm path "$STOCK_MUMLA" >/dev/null 2>&1; then
+  log "Removing stock Mumla ($STOCK_MUMLA)..."
+  "$ADB" uninstall "$STOCK_MUMLA" >/dev/null 2>&1 || true
+fi
 # SKIP_INSTALL=1 skips the adb install step — for devices (e.g. Xiaomi/MIUI)
 # that block "Install via USB", where you side-load the APK by hand first.
 if [ "${SKIP_INSTALL:-0}" = 1 ]; then
@@ -120,6 +145,13 @@ if [ "${SKIP_INSTALL:-0}" = 1 ]; then
   "$ADB" shell pm path "$PKG" >/dev/null 2>&1 \
     || { err "$PKG is not installed yet. Side-load the APK first, then re-run."; exit 1; }
 else
+  # Clean (re)install: uninstall any existing copy first so the new build goes
+  # in fresh. NB: this wipes the old cert/DB/prefs — they are re-created below,
+  # so a fresh certificate is generated each run.
+  if [ "$CLEAN_REINSTALL" = true ] && "$ADB" shell pm path "$PKG" >/dev/null 2>&1; then
+    log "Removing existing $PKG for a clean install..."
+    "$ADB" uninstall "$PKG" >/dev/null 2>&1 || true
+  fi
   log "Installing $APK_PATH ..."
   "$ADB" install -r "$APK_PATH"
 fi
@@ -188,6 +220,53 @@ if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talk
   pull "$PREFS" > "$TMP/p.xml"; set_ptt_prefs "$TMP/p.xml"; push_in "$TMP/p.xml" "$PREFS"
 fi
 
+# --- 7) background PTT: accessibility service + battery whitelist ----------
+# So the hardware PTT key toggles talk even with the screen off/locked. The
+# MumlaPTTAccessibilityService captures the key globally; without it enabled PTT
+# only works while the app is in the foreground. Doing it over adb saves the
+# manual "Settings > Accessibility" + "Battery: unrestricted" steps. We APPEND to
+# enabled_accessibility_services (colon-separated) so we don't disable others.
+BG_PTT_STATUS="left as-is"
+if [ "$ENABLE_BG_PTT" = true ]; then
+  log "Enabling background PTT (accessibility service + battery whitelist)..."
+  cur="$("$ADB" shell settings get secure enabled_accessibility_services 2>/dev/null | tr -d '\r')"
+  case "$cur" in null|'') cur='';; esac
+  case ":$cur:" in
+    *":$A11Y_SVC:"*) : ;;                                   # already listed
+    *) "$ADB" shell settings put secure enabled_accessibility_services "${cur:+$cur:}$A11Y_SVC" >/dev/null 2>&1 ;;
+  esac
+  "$ADB" shell settings put secure accessibility_enabled 1 >/dev/null 2>&1
+  "$ADB" shell dumpsys deviceidle whitelist +"$PKG" >/dev/null 2>&1 || true
+  now="$("$ADB" shell settings get secure enabled_accessibility_services 2>/dev/null | tr -d '\r')"
+  case ":$now:" in
+    *":$A11Y_SVC:"*) log "  Accessibility service ON, app battery-whitelisted."; BG_PTT_STATUS="on (accessibility + battery whitelist)" ;;
+    *) err "  Could not enable the accessibility service over adb — turn it on by hand: Settings > Accessibility > S12 Mumla."; BG_PTT_STATUS="FAILED — enable Accessibility by hand" ;;
+  esac
+fi
+
+# --- 8) neutralize rival PTT apps -----------------------------------------
+# Competing PTT apps (e.g. com.pocxin.ptt) auto-start on boot and can grab the
+# hardware PTT key / audio focus / battery. We can't disable just their boot
+# receiver without root (SELinux blocks shell from changing another app's
+# component state), so instead we PERSISTENTLY deny them RUN_IN_BACKGROUND via
+# appops (survives reboots, stops them living in the background) and force-stop
+# them now. The apps stay enabled/launchable in the foreground. Best-effort on
+# Android 7.1: the appop restricts background execution, it doesn't delete the
+# boot receiver, so a full autostart block isn't guaranteed. (Set the apps to
+# `pm disable-user` by hand if you want a hard, 100% stop and don't use them.)
+RIVAL_PTT_STATUS="skipped"
+if [ "$NEUTRALIZE_RIVAL_PTT" = true ]; then
+  done_list=''
+  for rp in $RIVAL_PTT; do
+    if "$ADB" shell pm path "$rp" >/dev/null 2>&1; then
+      "$ADB" shell cmd appops set "$rp" RUN_IN_BACKGROUND ignore >/dev/null 2>&1 || true
+      "$ADB" shell am force-stop "$rp" >/dev/null 2>&1 || true
+      done_list="${done_list:+$done_list, }$rp"
+    fi
+  done
+  [ -n "$done_list" ] && { log "Rival PTT apps background-restricted + stopped: $done_list."; RIVAL_PTT_STATUS="$done_list (bg-restricted + stopped)"; } || RIVAL_PTT_STATUS="none installed"
+fi
+
 # --- report ---------------------------------------------------------------
 pull "$DB" > "$TMP/v.db"
 log "Result:"
@@ -200,8 +279,10 @@ cat <<EOF
 [✓] Device provisioned: server + certificate + push-to-talk on F12
     (on-screen talk button $([ "$HIDE_ONSCREEN_PTT" = true ] && echo hidden || echo shown),
      mic volume ${MIC_VOLUME}%, handset mode ${HANDSET_MODE}, lock screen ${LOCK_STATUS}).
+    Background PTT (screen off/locked): ${BG_PTT_STATUS}.
+    Rival PTT apps force-stopped: ${RIVAL_PTT_STATUS}.
 
-Still to enable by hand (once) for PTT with the screen off:
+If background PTT shows FAILED above, enable it by hand (once):
   • Settings > Accessibility > "S12 Mumla background PTT key" -> ON
   • Settings > Apps > S12 Mumla > Battery                     -> Unrestricted
 EOF
