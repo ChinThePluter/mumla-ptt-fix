@@ -22,7 +22,8 @@
 # Server details come from server-config.sh (or env vars), same as
 # install-and-add-server.sh. Overridable: PTT_KEYCODE (default 142 = F12),
 # HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 25, in %),
-# HANDSET_MODE (default true), DISABLE_SCREEN_LOCK (default true),
+# HANDSET_MODE (default true), AUTO_CONNECT_ON_BOOT (default true),
+# DISABLE_SCREEN_LOCK (default true),
 # ENABLE_BG_PTT (default true), CLEAN_REINSTALL (default true),
 # REMOVE_STOCK_MUMLA (default true), NEUTRALIZE_RIVAL_PTT (default true),
 # DISABLE_RIVAL_PTT (default true).
@@ -55,6 +56,7 @@ PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
 HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-25}"           # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"     # handset (phone earpiece) mode
+AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-true}"  # auto-connect to the server on boot (BootPTTReceiver)
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)
 CLEAN_REINSTALL="${CLEAN_REINSTALL:-true}"        # uninstall our app first, then install fresh (wipes cert/prefs)
@@ -81,6 +83,7 @@ case "$PTT_KEYCODE" in ''|*[!0-9]*) err "PTT_KEYCODE must be numeric"; exit 1;; 
 case "$HIDE_ONSCREEN_PTT" in true|false) ;; *) err "HIDE_ONSCREEN_PTT must be true or false"; exit 1;; esac
 case "$MIC_VOLUME" in ''|*[!0-9]*) err "MIC_VOLUME must be numeric"; exit 1;; esac
 case "$HANDSET_MODE" in true|false) ;; *) err "HANDSET_MODE must be true or false"; exit 1;; esac
+case "$AUTO_CONNECT_ON_BOOT" in true|false) ;; *) err "AUTO_CONNECT_ON_BOOT must be true or false"; exit 1;; esac
 case "$DISABLE_SCREEN_LOCK" in true|false) ;; *) err "DISABLE_SCREEN_LOCK must be true or false"; exit 1;; esac
 case "$ENABLE_BG_PTT" in true|false) ;; *) err "ENABLE_BG_PTT must be true or false"; exit 1;; esac
 case "$CLEAN_REINSTALL" in true|false) ;; *) err "CLEAN_REINSTALL must be true or false"; exit 1;; esac
@@ -116,12 +119,13 @@ stop_app(){
 }
 # Rewrite the three PTT prefs in a pulled prefs file (in $TMP), keeping the rest.
 set_ptt_prefs(){ # $1 = local prefs xml — rewrite our audio prefs, keep the rest
-  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' -e '/name="inputVolume"/d' -e '/name="handset_mode"/d' "$1"
+  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' -e '/name="inputVolume"/d' -e '/name="handset_mode"/d' -e '/name="auto_connect_on_boot"/d' "$1"
   sed -i '' -e 's#</map>#    <string name="audioInputMethod">ptt</string>\
     <int name="talkKey" value="'"$PTT_KEYCODE"'" />\
     <boolean name="hidePtt" value="'"$HIDE_ONSCREEN_PTT"'" />\
     <int name="inputVolume" value="'"$MIC_VOLUME"'" />\
     <boolean name="handset_mode" value="'"$HANDSET_MODE"'" />\
+    <boolean name="auto_connect_on_boot" value="'"$AUTO_CONNECT_ON_BOOT"'" />\
 </map>#' "$1"
 }
 
@@ -229,7 +233,7 @@ push_in "$TMP/p.xml" "$PREFS"
 stop_app   # guarantee a clean process so the launch reads our file, not a stale map
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
 sleep 4
-if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talkKey"|name="hidePtt"|name="inputVolume"|name="handset_mode"')" != 5 ]; then
+if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talkKey"|name="hidePtt"|name="inputVolume"|name="handset_mode"|name="auto_connect_on_boot"')" != 6 ]; then
   log "App re-flushed prefs on launch — re-applying and leaving the app closed."
   stop_app
   pull "$PREFS" > "$TMP/p.xml"; set_ptt_prefs "$TMP/p.xml"; push_in "$TMP/p.xml" "$PREFS"
@@ -306,7 +310,7 @@ pull "$DB" > "$TMP/v.db"
 log "Result:"
 sqlite3 "$TMP/v.db" 'SELECT "    server: "||name||"  "||host||":"||port||"  user="||username FROM server;'
 sqlite3 "$TMP/v.db" 'SELECT "    cert:   id "||_id||"  "||name FROM certificates;'
-echo "    prefs:"; pull "$PREFS" | grep -E 'audioInputMethod|talkKey|hidePtt|inputVolume|handset_mode|certificateId' | sed 's/^/      /'
+echo "    prefs:"; pull "$PREFS" | grep -E 'audioInputMethod|talkKey|hidePtt|inputVolume|handset_mode|auto_connect_on_boot|certificateId' | sed 's/^/      /'
 
 cat <<EOF
 

@@ -146,6 +146,10 @@ public class Settings {
     public static final String PREF_RADIO_UI = "radio_ui_mode";
     public static final String DEFAULT_RADIO_UI = "auto";
 
+    /** Auto-connect to the favourite server on boot (BootPTTReceiver). Toggle off to disable. */
+    public static final String PREF_AUTO_CONNECT_ON_BOOT = "auto_connect_on_boot";
+    public static final boolean DEFAULT_AUTO_CONNECT_ON_BOOT = true;
+
     public static final String PREF_PTT_SOUND = "ptt_sound";
     public static final boolean DEFAULT_PTT_SOUND = false;
 
@@ -368,6 +372,10 @@ public class Settings {
 
     public String getRadioUiMode() {
         return preferences.getString(PREF_RADIO_UI, DEFAULT_RADIO_UI);
+    }
+
+    public boolean isAutoConnectOnBoot() {
+        return preferences.getBoolean(PREF_AUTO_CONNECT_ON_BOOT, DEFAULT_AUTO_CONNECT_ON_BOOT);
     }
 
     public boolean isPttSoundEnabled() {

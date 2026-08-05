@@ -25,6 +25,13 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.util.List;
+
+import se.lublin.humla.model.Server;
+import se.lublin.mumla.app.ServerConnectTask;
+import se.lublin.mumla.db.MumlaDatabase;
+import se.lublin.mumla.db.MumlaSQLiteDatabase;
+
 /**
  * Re-enables the background-PTT accessibility service on every boot.
  *
@@ -41,6 +48,12 @@ public class BootPTTReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        reEnableAccessibility(context);
+        maybeAutoConnect(context);
+    }
+
+    /** Re-add our accessibility service to the (boot-wiped) secure settings so it rebinds. */
+    private void reEnableAccessibility(Context context) {
         final String service = context.getPackageName()
                 + "/se.lublin.mumla.service.MumlaPTTAccessibilityService";
         try {
@@ -62,6 +75,31 @@ public class BootPTTReceiver extends BroadcastReceiver {
         } catch (Exception e) {
             // Most likely WRITE_SECURE_SETTINGS wasn't granted; can't recover from here.
             Log.w(TAG, "could not re-enable accessibility on boot: " + e);
+        }
+    }
+
+    /**
+     * If enabled (auto_connect_on_boot, default on), connect to the favourite server on
+     * boot so the radio is ready without the user opening the app. Gated by a setting so
+     * it can be turned off at any time (unlike a third-party auto-start app).
+     */
+    private void maybeAutoConnect(Context context) {
+        try {
+            if (!se.lublin.mumla.Settings.getInstance(context).isAutoConnectOnBoot()) {
+                return;
+            }
+            MumlaDatabase database = new MumlaSQLiteDatabase(context);
+            List<Server> servers = database.getServers();
+            if (servers.isEmpty()) {
+                return;
+            }
+            // startService works from a boot receiver on the target Android 7.1 radios; on
+            // Android 8+ (background start) it throws and is caught — auto-connect is a radio
+            // feature, not needed on touch phones.
+            context.startService(ServerConnectTask.buildConnectIntent(context, servers.get(0), database));
+            Log.i(TAG, "auto-connecting to " + servers.get(0).getName() + " on boot");
+        } catch (Exception e) {
+            Log.w(TAG, "auto-connect on boot skipped: " + e);
         }
     }
 }
