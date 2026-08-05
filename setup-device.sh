@@ -13,16 +13,19 @@
 #   6. launches the app,
 #   7. enables the background-PTT accessibility service + battery whitelist so
 #      the hardware PTT key works with the screen off/locked, and
-#   8. neutralizes rival PTT apps (e.g. com.pocxin.ptt): persistently denies them
-#      RUN_IN_BACKGROUND (appops, survives reboot) and force-stops them, so they
-#      don't grab the key/audio/battery. Best-effort; the apps stay launchable.
+#   8. neutralizes rival PTT apps (e.g. com.pocxin.ptt) so they don't grab the
+#      key/audio/battery: by default disables them entirely (reliable — they never
+#      auto-start again; re-enable with ./pocxin.sh on). Set DISABLE_RIVAL_PTT=false
+#      to only appops-restrict + force-stop instead (keeps them launchable, but
+#      does not reliably stop boot auto-start on Android 7.1).
 #
 # Server details come from server-config.sh (or env vars), same as
 # install-and-add-server.sh. Overridable: PTT_KEYCODE (default 142 = F12),
 # HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 25, in %),
 # HANDSET_MODE (default true), DISABLE_SCREEN_LOCK (default true),
 # ENABLE_BG_PTT (default true), CLEAN_REINSTALL (default true),
-# REMOVE_STOCK_MUMLA (default true), NEUTRALIZE_RIVAL_PTT (default true).
+# REMOVE_STOCK_MUMLA (default true), NEUTRALIZE_RIVAL_PTT (default true),
+# DISABLE_RIVAL_PTT (default true).
 #
 # NB: with CLEAN_REINSTALL=true (default) the app is uninstalled before install,
 # so a fresh certificate is generated on every run. Set CLEAN_REINSTALL=false to
@@ -56,7 +59,8 @@ DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = N
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)
 CLEAN_REINSTALL="${CLEAN_REINSTALL:-true}"        # uninstall our app first, then install fresh (wipes cert/prefs)
 REMOVE_STOCK_MUMLA="${REMOVE_STOCK_MUMLA:-true}"  # uninstall the stock upstream Mumla if present
-NEUTRALIZE_RIVAL_PTT="${NEUTRALIZE_RIVAL_PTT:-true}" # background-restrict (appops) + force-stop rival PTT apps
+NEUTRALIZE_RIVAL_PTT="${NEUTRALIZE_RIVAL_PTT:-true}" # deal with rival PTT apps (see DISABLE_RIVAL_PTT)
+DISABLE_RIVAL_PTT="${DISABLE_RIVAL_PTT:-true}"   # true = disable them (reliable no-autostart); false = appops-only (keeps launchable, best-effort)
 
 PKG="se.lublin.mumla.s12"
 STOCK_MUMLA="se.lublin.mumla"            # upstream Mumla (a different package from ours)
@@ -82,6 +86,7 @@ case "$ENABLE_BG_PTT" in true|false) ;; *) err "ENABLE_BG_PTT must be true or fa
 case "$CLEAN_REINSTALL" in true|false) ;; *) err "CLEAN_REINSTALL must be true or false"; exit 1;; esac
 case "$REMOVE_STOCK_MUMLA" in true|false) ;; *) err "REMOVE_STOCK_MUMLA must be true or false"; exit 1;; esac
 case "$NEUTRALIZE_RIVAL_PTT" in true|false) ;; *) err "NEUTRALIZE_RIVAL_PTT must be true or false"; exit 1;; esac
+case "$DISABLE_RIVAL_PTT" in true|false) ;; *) err "DISABLE_RIVAL_PTT must be true or false"; exit 1;; esac
 if [ -z "$SERVER_HOST" ] || [ "$SERVER_HOST" = "mumble.example.com" ]; then
   err "No server configured — copy server-config.example.sh to server-config.sh and edit it (or set SERVER_HOST etc.)."; exit 1
 fi
@@ -156,6 +161,16 @@ else
   "$ADB" install -r "$APK_PATH"
 fi
 
+# Grant the microphone runtime permission so the app can transmit without a
+# permission dialog — the keypad "radio" UI on no-touch devices can't easily show
+# one. Harmless on API < 23 (granted at install time). Runtime perms survive
+# install -r, but granting again is idempotent.
+"$ADB" shell pm grant "$PKG" android.permission.RECORD_AUDIO >/dev/null 2>&1 || true
+# Grant WRITE_SECURE_SETTINGS (a development permission) so the app's BootPTTReceiver
+# can re-enable the background-PTT accessibility service on every boot — these radios
+# wipe enabled_accessibility_services on boot, which otherwise kills screen-off PTT.
+"$ADB" shell pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS >/dev/null 2>&1 || true
+
 # --- 2b) device: turn off the lock screen (Screen lock = None) -------------
 # Device-level setting (not an app pref). `locksettings set-disabled true` maps
 # to Screen lock = None; it has no effect if a secure PIN/pattern/password is
@@ -224,47 +239,66 @@ fi
 # So the hardware PTT key toggles talk even with the screen off/locked. The
 # MumlaPTTAccessibilityService captures the key globally; without it enabled PTT
 # only works while the app is in the foreground. Doing it over adb saves the
-# manual "Settings > Accessibility" + "Battery: unrestricted" steps. We APPEND to
-# enabled_accessibility_services (colon-separated) so we don't disable others.
+# manual "Settings > Accessibility" + "Battery: unrestricted" steps.
+#
+# IMPORTANT: a (re)install REVOKES / unbinds the accessibility service on Android
+# (a security measure), and merely re-writing the list doesn't reliably rebind it.
+# So we APPEND our service (keeping any others), then TOGGLE accessibility_enabled
+# off->on to force a clean rebind, and finally verify it is actually BOUND via
+# dumpsys (not just present in the settings string).
 BG_PTT_STATUS="left as-is"
 if [ "$ENABLE_BG_PTT" = true ]; then
   log "Enabling background PTT (accessibility service + battery whitelist)..."
   cur="$("$ADB" shell settings get secure enabled_accessibility_services 2>/dev/null | tr -d '\r')"
   case "$cur" in null|'') cur='';; esac
-  case ":$cur:" in
-    *":$A11Y_SVC:"*) : ;;                                   # already listed
-    *) "$ADB" shell settings put secure enabled_accessibility_services "${cur:+$cur:}$A11Y_SVC" >/dev/null 2>&1 ;;
-  esac
+  case ":$cur:" in *":$A11Y_SVC:"*) : ;; *) cur="${cur:+$cur:}$A11Y_SVC";; esac
+  "$ADB" shell settings put secure accessibility_enabled 0 >/dev/null 2>&1
+  "$ADB" shell settings put secure enabled_accessibility_services "$cur" >/dev/null 2>&1
   "$ADB" shell settings put secure accessibility_enabled 1 >/dev/null 2>&1
   "$ADB" shell dumpsys deviceidle whitelist +"$PKG" >/dev/null 2>&1 || true
-  now="$("$ADB" shell settings get secure enabled_accessibility_services 2>/dev/null | tr -d '\r')"
-  case ":$now:" in
-    *":$A11Y_SVC:"*) log "  Accessibility service ON, app battery-whitelisted."; BG_PTT_STATUS="on (accessibility + battery whitelist)" ;;
-    *) err "  Could not enable the accessibility service over adb — turn it on by hand: Settings > Accessibility > S12 Mumla."; BG_PTT_STATUS="FAILED — enable Accessibility by hand" ;;
-  esac
+  sleep 2
+  # The bound service's label shows as "Mumla background PTT key" or the raw class name.
+  if "$ADB" shell dumpsys accessibility 2>/dev/null | grep -qiE "MumlaPTT|Mumla background PTT"; then
+    log "  Accessibility service ON (bound), app battery-whitelisted."
+    BG_PTT_STATUS="on (accessibility bound + battery whitelist)"
+  else
+    err "  Accessibility service did not bind — enable by hand: Settings > Accessibility > S12 Mumla."
+    BG_PTT_STATUS="FAILED — enable Accessibility by hand"
+  fi
 fi
 
 # --- 8) neutralize rival PTT apps -----------------------------------------
-# Competing PTT apps (e.g. com.pocxin.ptt) auto-start on boot and can grab the
+# Competing PTT apps (e.g. com.pocxin.ptt) auto-start on every boot and grab the
 # hardware PTT key / audio focus / battery. We can't disable just their boot
-# receiver without root (SELinux blocks shell from changing another app's
-# component state), so instead we PERSISTENTLY deny them RUN_IN_BACKGROUND via
-# appops (survives reboots, stops them living in the background) and force-stop
-# them now. The apps stay enabled/launchable in the foreground. Best-effort on
-# Android 7.1: the appop restricts background execution, it doesn't delete the
-# boot receiver, so a full autostart block isn't guaranteed. (Set the apps to
-# `pm disable-user` by hand if you want a hard, 100% stop and don't use them.)
+# receiver without root (SELinux blocks changing another app's component state), so:
+#   DISABLE_RIVAL_PTT=true (default) -> `pm disable-user` the whole app: reliable,
+#     it never auto-starts again (re-enable with ./pocxin.sh on, or `pm enable`),
+#     but it is then not launchable on-device until re-enabled.
+#   DISABLE_RIVAL_PTT=false -> only appops-restrict RUN_IN_BACKGROUND + force-stop:
+#     keeps the app launchable, but on Android 7.1 this does NOT reliably stop the
+#     boot auto-start (best-effort only).
 RIVAL_PTT_STATUS="skipped"
 if [ "$NEUTRALIZE_RIVAL_PTT" = true ]; then
   done_list=''
   for rp in $RIVAL_PTT; do
-    if "$ADB" shell pm path "$rp" >/dev/null 2>&1; then
+    "$ADB" shell pm path "$rp" >/dev/null 2>&1 || continue
+    "$ADB" shell am force-stop "$rp" >/dev/null 2>&1 || true
+    if [ "$DISABLE_RIVAL_PTT" = true ]; then
+      "$ADB" shell pm disable-user --user 0 "$rp" >/dev/null 2>&1 || true
+    else
       "$ADB" shell cmd appops set "$rp" RUN_IN_BACKGROUND ignore >/dev/null 2>&1 || true
-      "$ADB" shell am force-stop "$rp" >/dev/null 2>&1 || true
-      done_list="${done_list:+$done_list, }$rp"
     fi
+    done_list="${done_list:+$done_list, }$rp"
   done
-  [ -n "$done_list" ] && { log "Rival PTT apps background-restricted + stopped: $done_list."; RIVAL_PTT_STATUS="$done_list (bg-restricted + stopped)"; } || RIVAL_PTT_STATUS="none installed"
+  if [ -z "$done_list" ]; then
+    RIVAL_PTT_STATUS="none installed"
+  elif [ "$DISABLE_RIVAL_PTT" = true ]; then
+    log "Rival PTT apps disabled (no auto-start): $done_list."
+    RIVAL_PTT_STATUS="$done_list (disabled — re-enable with ./pocxin.sh on)"
+  else
+    log "Rival PTT apps background-restricted + stopped: $done_list."
+    RIVAL_PTT_STATUS="$done_list (bg-restricted + stopped, best-effort)"
+  fi
 fi
 
 # --- report ---------------------------------------------------------------
@@ -280,7 +314,7 @@ cat <<EOF
     (on-screen talk button $([ "$HIDE_ONSCREEN_PTT" = true ] && echo hidden || echo shown),
      mic volume ${MIC_VOLUME}%, handset mode ${HANDSET_MODE}, lock screen ${LOCK_STATUS}).
     Background PTT (screen off/locked): ${BG_PTT_STATUS}.
-    Rival PTT apps force-stopped: ${RIVAL_PTT_STATUS}.
+    Rival PTT apps: ${RIVAL_PTT_STATUS}.
 
 If background PTT shows FAILED above, enable it by hand (once):
   • Settings > Accessibility > "S12 Mumla background PTT key" -> ON
