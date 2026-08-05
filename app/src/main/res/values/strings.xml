@@ -240,4 +240,14 @@
 
     <!-- Used only by flavor "foss" -->
     <string name="donate_foss">Donate</string>
+
+    <!-- Keypad "radio" UI (no-touch devices) -->
+    <string name="radio_status_connected">Connected</string>
+    <string name="radio_status_connecting">Connecting…</string>
+    <string name="radio_status_offline">Offline</string>
+    <string name="radio_label_channel">Channel</string>
+    <string name="radio_label_talking">Talking</string>
+    <string name="radio_transmitting">● TRANSMITTING</string>
+    <string name="radio_hold_to_talk">Hold PTT to talk</string>
+    <string name="radio_nobody_talking">—</string>
 </resources>

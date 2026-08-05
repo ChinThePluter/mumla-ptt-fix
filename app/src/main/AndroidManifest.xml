@@ -36,6 +36,11 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Background-PTT add-on: re-enable the accessibility service on boot (Hytera
+         radios reset enabled_accessibility_services on every boot). WRITE_SECURE_SETTINGS
+         is a development permission granted over adb by setup-device.sh. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <queries>
         <!-- We're using guardianproject's OrbotHelper to check if Orbot is installed -->
@@ -107,16 +112,48 @@
                 android:resource="@xml/ptt_accessibility_service" />
         </service>
 
+        <!--
+          ~ Re-enables the accessibility service above on every boot, because the Hytera
+          ~ radios reset enabled_accessibility_services on boot. Needs WRITE_SECURE_SETTINGS
+          ~ (granted over adb by setup-device.sh); a no-op without it.
+          -->
+        <receiver
+            android:name=".service.BootPTTReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Launcher trampoline: routes to the keypad "radio" UI on no-touch devices
+             (Hytera POC radios), otherwise to the normal MumlaActivity. -->
         <activity
-            android:name=".app.MumlaActivity"
-            android:label="@string/app_name"
-            android:launchMode="singleTop"
+            android:name=".app.radio.RadioRouterActivity"
+            android:theme="@style/Theme.Mumla"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- Keypad/D-pad UI for no-touch radios (reuses MumlaService/Settings/DB). -->
+        <activity
+            android:name=".app.radio.RadioActivity"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Mumla"
+            android:launchMode="singleTop"
+            android:exported="false" />
+
+        <activity
+            android:name=".app.MumlaActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>

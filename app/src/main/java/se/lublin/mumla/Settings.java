@@ -142,6 +142,10 @@ public class Settings {
     public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";
     public static final boolean DEFAULT_SUSPEND_MIC_IDLE = false;
 
+    /** Which UI to use: "auto" = keypad "radio" UI on no-touch devices, else "on"/"off". */
+    public static final String PREF_RADIO_UI = "radio_ui_mode";
+    public static final String DEFAULT_RADIO_UI = "auto";
+
     public static final String PREF_PTT_SOUND = "ptt_sound";
     public static final boolean DEFAULT_PTT_SOUND = false;
 
@@ -360,6 +364,10 @@ public class Settings {
 
     public boolean isSuspendMicWhileIdle() {
         return preferences.getBoolean(PREF_SUSPEND_MIC_IDLE, DEFAULT_SUSPEND_MIC_IDLE);
+    }
+
+    public String getRadioUiMode() {
+        return preferences.getString(PREF_RADIO_UI, DEFAULT_RADIO_UI);
     }
 
     public boolean isPttSoundEnabled() {
