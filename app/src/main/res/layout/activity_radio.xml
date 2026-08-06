@@ -72,6 +72,24 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
+    <!-- Focusable D-pad target: press OK/ENTER to open Settings. Auto-focused (only
+         focusable view), which also lets the activity window receive key events. -->
+    <TextView
+        android:id="@+id/radio_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/radio_settings_bg"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:gravity="center"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp"
+        android:text="@string/radio_open_settings"
+        android:textColor="#E6F0F2"
+        android:textSize="16sp" />
+
     <TextView
         android:id="@+id/radio_ptt"
         android:layout_width="match_parent"

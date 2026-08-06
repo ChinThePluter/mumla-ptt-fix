@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -51,6 +52,7 @@ import se.lublin.mumla.Settings;
 import se.lublin.mumla.app.ServerConnectTask;
 import se.lublin.mumla.db.MumlaDatabase;
 import se.lublin.mumla.db.MumlaSQLiteDatabase;
+import se.lublin.mumla.preference.SettingsActivity;
 import se.lublin.mumla.service.IMumlaService;
 import se.lublin.mumla.service.MumlaService;
 import se.lublin.mumla.util.MumlaTrustStore;
@@ -123,6 +125,12 @@ public class RadioActivity extends AppCompatActivity {
         mChannelText = findViewById(R.id.radio_channel);
         mTalkingText = findViewById(R.id.radio_talking);
         mPttText = findViewById(R.id.radio_ptt);
+
+        // Focusable "Settings" target: opens the normal settings screen (a D-pad-navigable
+        // preference list). Having a focusable view also lets this window receive key events.
+        View settings = findViewById(R.id.radio_settings);
+        settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        settings.requestFocus();
 
         // The provisioned radio has exactly one favourite server; connect to it.
         List<Server> servers = mDatabase.getServers();

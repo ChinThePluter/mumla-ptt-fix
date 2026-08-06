@@ -210,4 +210,5 @@
     <string name="radio_transmitting">● กำลังส่งเสียง</string>
     <string name="radio_hold_to_talk">กดปุ่ม PTT ค้างเพื่อพูด</string>
     <string name="radio_nobody_talking">—</string>
+    <string name="radio_open_settings">⚙ ตั้งค่า</string>
 </resources>
