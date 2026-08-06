@@ -14,19 +14,19 @@
 #   7. enables the background-PTT accessibility service + battery whitelist so
 #      the hardware PTT key works with the screen off/locked, and
 #   8. neutralizes rival PTT apps (e.g. com.pocxin.ptt) so they don't grab the
-#      key/audio/battery: by default disables them entirely (reliable — they never
-#      auto-start again; re-enable with ./pocxin.sh on). Set DISABLE_RIVAL_PTT=false
-#      to only appops-restrict + force-stop instead (keeps them launchable, but
-#      does not reliably stop boot auto-start on Android 7.1).
+#      key/audio/battery: by default (DISABLE_RIVAL_PTT=false) it only appops-restricts
+#      + force-stops them (keeps them launchable, best-effort — does not reliably stop
+#      boot auto-start on Android 7.1). Set DISABLE_RIVAL_PTT=true to disable them
+#      entirely instead (reliable no-autostart; re-enable with ./pocxin.sh on).
 #
 # Server details come from server-config.sh (or env vars), same as
 # install-and-add-server.sh. Overridable: PTT_KEYCODE (default 142 = F12),
 # HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 25, in %),
-# HANDSET_MODE (default true), AUTO_CONNECT_ON_BOOT (default true),
+# HANDSET_MODE (default true), AUTO_CONNECT_ON_BOOT (default false),
 # DISABLE_SCREEN_LOCK (default true),
 # ENABLE_BG_PTT (default true), CLEAN_REINSTALL (default true),
 # REMOVE_STOCK_MUMLA (default true), NEUTRALIZE_RIVAL_PTT (default true),
-# DISABLE_RIVAL_PTT (default true).
+# DISABLE_RIVAL_PTT (default false).
 #
 # NB: with CLEAN_REINSTALL=true (default) the app is uninstalled before install,
 # so a fresh certificate is generated on every run. Set CLEAN_REINSTALL=false to
@@ -56,13 +56,13 @@ PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
 HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-25}"           # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"     # handset (phone earpiece) mode
-AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-true}"  # auto-connect to the server on boot (BootPTTReceiver)
+AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)
 CLEAN_REINSTALL="${CLEAN_REINSTALL:-true}"        # uninstall our app first, then install fresh (wipes cert/prefs)
 REMOVE_STOCK_MUMLA="${REMOVE_STOCK_MUMLA:-true}"  # uninstall the stock upstream Mumla if present
 NEUTRALIZE_RIVAL_PTT="${NEUTRALIZE_RIVAL_PTT:-true}" # deal with rival PTT apps (see DISABLE_RIVAL_PTT)
-DISABLE_RIVAL_PTT="${DISABLE_RIVAL_PTT:-true}"   # true = disable them (reliable no-autostart); false = appops-only (keeps launchable, best-effort)
+DISABLE_RIVAL_PTT="${DISABLE_RIVAL_PTT:-false}"  # true = disable them (reliable no-autostart); false = appops-only (keeps launchable, best-effort)
 
 PKG="se.lublin.mumla.s12"
 STOCK_MUMLA="se.lublin.mumla"            # upstream Mumla (a different package from ours)
@@ -275,12 +275,12 @@ fi
 # Competing PTT apps (e.g. com.pocxin.ptt) auto-start on every boot and grab the
 # hardware PTT key / audio focus / battery. We can't disable just their boot
 # receiver without root (SELinux blocks changing another app's component state), so:
-#   DISABLE_RIVAL_PTT=true (default) -> `pm disable-user` the whole app: reliable,
-#     it never auto-starts again (re-enable with ./pocxin.sh on, or `pm enable`),
-#     but it is then not launchable on-device until re-enabled.
-#   DISABLE_RIVAL_PTT=false -> only appops-restrict RUN_IN_BACKGROUND + force-stop:
-#     keeps the app launchable, but on Android 7.1 this does NOT reliably stop the
-#     boot auto-start (best-effort only).
+#   DISABLE_RIVAL_PTT=true -> `pm disable-user` the whole app: reliable, it never
+#     auto-starts again (re-enable with ./pocxin.sh on, or `pm enable`), but it is
+#     then not launchable on-device until re-enabled.
+#   DISABLE_RIVAL_PTT=false (default) -> only appops-restrict RUN_IN_BACKGROUND +
+#     force-stop: keeps the app launchable, but on Android 7.1 this does NOT reliably
+#     stop the boot auto-start (best-effort only).
 RIVAL_PTT_STATUS="skipped"
 if [ "$NEUTRALIZE_RIVAL_PTT" = true ]; then
   done_list=''

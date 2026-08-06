@@ -41,8 +41,8 @@ public class MumlaApplication extends Application implements SharedPreferences.O
     private static void applyTheme(SharedPreferences preferences) {
         // The "system" and "force*" values are new (see preference_notranslate.xml).
         // We let other (older) value result in system default theme, and write that
-        // to the preference store.
-        switch (preferences.getString(PREF_THEME, "system")) {
+        // to the preference store. Default is forceDark (the radios want a black UI).
+        switch (preferences.getString(PREF_THEME, "forceDark")) {
             case "forceLight":
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
                 break;
