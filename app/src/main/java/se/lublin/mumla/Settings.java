@@ -138,6 +138,11 @@ public class Settings {
     public static final String PREF_HANDSET_MODE = "handset_mode";
     public static final boolean DEFAULT_HANDSET_MODE = false;
 
+    /** Force audio OUTPUT to the loudspeaker even in handset mode (keeps the handset mic
+     *  for INPUT but plays received audio loud on the main speaker). Default on. */
+    public static final String PREF_FORCE_SPEAKER = "force_speaker";
+    public static final boolean DEFAULT_FORCE_SPEAKER = true;
+
     /** Power the mic down while push-to-talk is released, to save battery. Opt-in. */
     public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";
     public static final boolean DEFAULT_SUSPEND_MIC_IDLE = false;
@@ -364,6 +369,20 @@ public class Settings {
 
     public boolean isHandsetMode() {
         return preferences.getBoolean(PREF_HANDSET_MODE, DEFAULT_HANDSET_MODE);
+    }
+
+    public boolean isForceSpeaker() {
+        return preferences.getBoolean(PREF_FORCE_SPEAKER, DEFAULT_FORCE_SPEAKER);
+    }
+
+    /**
+     * True if audio output + the volume keys should use the voice-call (earpiece) stream
+     * rather than the loudspeaker (music) stream. Only when handset mode is on AND the user
+     * hasn't forced the loudspeaker. Note: this affects OUTPUT only; the input mic source
+     * still follows {@link #isHandsetMode()}.
+     */
+    public boolean usesVoiceCallOutput() {
+        return isHandsetMode() && !isForceSpeaker();
     }
 
     public boolean isSuspendMicWhileIdle() {

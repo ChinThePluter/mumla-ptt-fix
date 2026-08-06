@@ -36,6 +36,13 @@
         app:iconSpaceReserved="false"/>
 
     <CheckBoxPreference
+        android:key="force_speaker"
+        android:title="@string/forceSpeaker"
+        android:summary="@string/forceSpeakerSum"
+        android:defaultValue="true"
+        app:iconSpaceReserved="false"/>
+
+    <CheckBoxPreference
         android:key="suspend_mic_idle"
         android:title="@string/suspendMicIdle"
         android:summary="@string/suspendMicIdleSum"

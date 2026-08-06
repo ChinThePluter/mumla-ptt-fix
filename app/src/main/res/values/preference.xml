@@ -107,6 +107,8 @@
     <string name="halfDuplexSum">Mutes other playback during push-to-talk to avoid audio loops/feedback.</string>
     <string name="handsetMode">Handset</string>
     <string name="handsetModeSum">Uses the front speaker and proximity sensor to simulate a traditional phone call.</string>
+    <string name="forceSpeaker">Force loudspeaker</string>
+    <string name="forceSpeakerSum">Always play received audio on the loudspeaker, even in handset mode (keeps the handset microphone for talking). Turn off for handset earpiece output.</string>
     <string name="suspendMicIdle">Power-save microphone</string>
     <string name="suspendMicIdleSum">In push-to-talk, powers the microphone down while the button is released to save battery. May clip the very start of a transmission if you press and speak instantly.</string>
     <string name="pttSound">Push-to-talk sound</string>

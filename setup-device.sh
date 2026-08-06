@@ -55,7 +55,7 @@ SERVER_PASSWORD="${SERVER_PASSWORD:-}"
 PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
 HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-25}"           # microphone volume % (100 = 1.0x gain)
-HANDSET_MODE="${HANDSET_MODE:-true}"     # handset (phone earpiece) mode
+HANDSET_MODE="${HANDSET_MODE:-true}"    # handset (earpiece mic + earpiece speaker); off = main mic + loudspeaker (walkie-talkie)
 AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)

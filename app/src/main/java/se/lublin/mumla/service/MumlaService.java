@@ -382,8 +382,9 @@ public class MumlaService extends HumlaService implements
         if (mSettings.isHotCornerEnabled()) {
             mHotCorner.setShown(true);
         }
-        // Configure proximity sensor
-        if (mSettings.isHandsetMode()) {
+        // Configure proximity sensor — only when actually routing output to the earpiece
+        // (handset mode without "force loudspeaker"), else keep it off so audio stays loud.
+        if (mSettings.usesVoiceCallOutput()) {
             setProximitySensorOn(true);
         }
     }
@@ -423,8 +424,9 @@ public class MumlaService extends HumlaService implements
                 mChannelOverlay.setPushToTalkShown(inputMethod == Constants.TRANSMIT_PUSH_TO_TALK);
                 break;
             case Settings.PREF_HANDSET_MODE:
-                setProximitySensorOn(isConnectionEstablished() && mSettings.isHandsetMode());
-                changedExtras.putInt(HumlaService.EXTRAS_AUDIO_STREAM, mSettings.isHandsetMode() ?
+            case Settings.PREF_FORCE_SPEAKER:
+                setProximitySensorOn(isConnectionEstablished() && mSettings.usesVoiceCallOutput());
+                changedExtras.putInt(HumlaService.EXTRAS_AUDIO_STREAM, mSettings.usesVoiceCallOutput() ?
                                      AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
                 break;
             case Settings.PREF_THRESHOLD:

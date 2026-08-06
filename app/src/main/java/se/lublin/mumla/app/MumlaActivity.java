@@ -375,7 +375,7 @@ public class MumlaActivity extends AppCompatActivity implements ListView.OnItemC
             }
         }
 
-        setVolumeControlStream(mSettings.isHandsetMode() ?
+        setVolumeControlStream(mSettings.usesVoiceCallOutput() ?
                 AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
 
         if (savedInstanceState == null) {
@@ -850,7 +850,7 @@ public class MumlaActivity extends AppCompatActivity implements ListView.OnItemC
                 setStayAwake(mSettings.shouldStayAwake());
                 break;
             case Settings.PREF_HANDSET_MODE:
-                setVolumeControlStream(mSettings.isHandsetMode() ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
+                setVolumeControlStream(mSettings.usesVoiceCallOutput() ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
                 break;
         }
     }

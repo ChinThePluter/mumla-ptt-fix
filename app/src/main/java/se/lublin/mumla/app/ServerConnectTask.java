@@ -66,9 +66,12 @@ public class ServerConnectTask extends AsyncTask<Server, Void, Intent> {
         /* Convert input method defined in settings to an integer format used by Humla. */
         int inputMethod = settings.getHumlaInputMethod();
 
+        // INPUT: handset mode uses the (better) handset mic. OUTPUT: the loudspeaker,
+        // unless the user wants earpiece routing (usesVoiceCallOutput) — decoupled so a
+        // radio can have "handset mic + loud speaker".
         int audioSource = settings.isHandsetMode() ?
                 MediaRecorder.AudioSource.DEFAULT : MediaRecorder.AudioSource.MIC;
-        int audioStream = settings.isHandsetMode() ?
+        int audioStream = settings.usesVoiceCallOutput() ?
                 AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC;
 
         Intent connectIntent = new Intent(context, MumlaService.class);

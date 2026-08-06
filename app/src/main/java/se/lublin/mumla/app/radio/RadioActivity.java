@@ -22,6 +22,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -120,6 +121,14 @@ public class RadioActivity extends AppCompatActivity {
         mDatabase = new MumlaSQLiteDatabase(this);
 
         setContentView(R.layout.activity_radio);
+
+        // Route the hardware volume keys to the stream we actually play received audio
+        // on, so the user can turn it up/down. In handset mode that's the voice-call
+        // stream (MumlaActivity does the same); the radio UI missed this, which left the
+        // received audio stuck quiet with no way to raise it.
+        setVolumeControlStream(mSettings.usesVoiceCallOutput()
+                ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
+
         mServerText = findViewById(R.id.radio_server);
         mStatusText = findViewById(R.id.radio_status);
         mChannelText = findViewById(R.id.radio_channel);

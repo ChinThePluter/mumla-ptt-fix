@@ -94,6 +94,8 @@
     <string name="togglePtt">สลับการใช้งานปุ่มกดเพื่อพูด</string>
     <string name="hidePttSum">มีประโยชน์หากคุณใช้มุมลัดหรือปุ่มฮาร์ดแวร์เพียงอย่างเดียว.</string>
     <string name="handsetMode">โหมดโทรศัพท์มือถือ</string>
+    <string name="forceSpeaker">บังคับใช้ลำโพงนอก</string>
+    <string name="forceSpeakerSum">เล่นเสียงที่รับออกลำโพงนอกเสมอ แม้เปิดโหมดโทรศัพท์ (ยังใช้ไมค์ handset สำหรับพูด) ปิดถ้าต้องการให้เสียงออกลำโพงหูแนบ.</string>
     <string name="suspendMicIdle">ประหยัดพลังงานไมโครโฟน</string>
     <string name="suspendMicIdleSum">ในโหมดกดเพื่อพูด (PTT) จะปิดไมโครโฟนขณะปล่อยปุ่มเพื่อประหยัดแบตเตอรี่ อาจตัดเสียงต้นประโยคเล็กน้อยหากกดแล้วพูดทันที.</string>
     <string name="echoCancellationSystem">ระบบ</string>
