@@ -148,7 +148,7 @@ public class Settings {
      *  Stored as a string key ("auto"/"mic"/"voice_comm"/"camcorder"/"voice_recognition");
      *  "auto" preserves the legacy behaviour (handset mode -> DEFAULT mic, else MIC). */
     public static final String PREF_MIC_SOURCE = "mic_source";
-    public static final String DEFAULT_MIC_SOURCE = "auto";
+    public static final String DEFAULT_MIC_SOURCE = "voice_comm";
 
     /** Power the mic down while push-to-talk is released, to save battery. Opt-in. */
     public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";

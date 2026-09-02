@@ -56,6 +56,7 @@ PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
 HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-25}"           # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"    # handset (earpiece mic + earpiece speaker); off = main mic + loudspeaker (walkie-talkie)
+MIC_SOURCE="${MIC_SOURCE:-voice_comm}"  # capture path: auto|mic|voice_comm|camcorder|voice_recognition (voice_comm = noise reduction)
 AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)
@@ -119,12 +120,13 @@ stop_app(){
 }
 # Rewrite the three PTT prefs in a pulled prefs file (in $TMP), keeping the rest.
 set_ptt_prefs(){ # $1 = local prefs xml — rewrite our audio prefs, keep the rest
-  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' -e '/name="inputVolume"/d' -e '/name="handset_mode"/d' -e '/name="auto_connect_on_boot"/d' "$1"
+  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' -e '/name="inputVolume"/d' -e '/name="handset_mode"/d' -e '/name="mic_source"/d' -e '/name="auto_connect_on_boot"/d' "$1"
   sed -i '' -e 's#</map>#    <string name="audioInputMethod">ptt</string>\
     <int name="talkKey" value="'"$PTT_KEYCODE"'" />\
     <boolean name="hidePtt" value="'"$HIDE_ONSCREEN_PTT"'" />\
     <int name="inputVolume" value="'"$MIC_VOLUME"'" />\
     <boolean name="handset_mode" value="'"$HANDSET_MODE"'" />\
+    <string name="mic_source">'"$MIC_SOURCE"'</string>\
     <boolean name="auto_connect_on_boot" value="'"$AUTO_CONNECT_ON_BOOT"'" />\
 </map>#' "$1"
 }
@@ -224,7 +226,7 @@ push_in "$TMP/mumble.db" "$DB"
 "$ADB" shell run-as "$PKG" rm -f "${DB}-journal" "${DB}-wal" "${DB}-shm" 2>/dev/null || true
 
 # --- 5) push-to-talk + PTT key --------------------------------------------
-log "Setting push-to-talk (key $PTT_KEYCODE=F12), hide button = $HIDE_ONSCREEN_PTT, mic volume = $MIC_VOLUME%, handset mode = $HANDSET_MODE..."
+log "Setting push-to-talk (key $PTT_KEYCODE=F12), hide button = $HIDE_ONSCREEN_PTT, mic volume = $MIC_VOLUME%, handset mode = $HANDSET_MODE, mic source = $MIC_SOURCE..."
 pull "$PREFS" > "$TMP/p.xml"
 set_ptt_prefs "$TMP/p.xml"
 push_in "$TMP/p.xml" "$PREFS"
@@ -233,7 +235,7 @@ push_in "$TMP/p.xml" "$PREFS"
 stop_app   # guarantee a clean process so the launch reads our file, not a stale map
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
 sleep 4
-if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talkKey"|name="hidePtt"|name="inputVolume"|name="handset_mode"|name="auto_connect_on_boot"')" != 6 ]; then
+if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talkKey"|name="hidePtt"|name="inputVolume"|name="handset_mode"|name="mic_source"|name="auto_connect_on_boot"')" != 7 ]; then
   log "App re-flushed prefs on launch — re-applying and leaving the app closed."
   stop_app
   pull "$PREFS" > "$TMP/p.xml"; set_ptt_prefs "$TMP/p.xml"; push_in "$TMP/p.xml" "$PREFS"
