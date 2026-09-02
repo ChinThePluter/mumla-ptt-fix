@@ -109,6 +109,13 @@
     <string name="handsetModeSum">Uses the front speaker and proximity sensor to simulate a traditional phone call.</string>
     <string name="forceSpeaker">Force loudspeaker</string>
     <string name="forceSpeakerSum">Always play received audio on the loudspeaker, even in handset mode (keeps the handset microphone for talking). Turn off for handset earpiece output.</string>
+    <string name="micSource">Microphone</string>
+    <string name="micSourceSum">Which microphone / capture path to use for transmitting.</string>
+    <string name="micSourceAuto">Automatic (follows Handset)</string>
+    <string name="micSourceMic">Main microphone (walkie-talkie)</string>
+    <string name="micSourceVoiceComm">Communication mic (noise reduction)</string>
+    <string name="micSourceCamcorder">Camcorder mic</string>
+    <string name="micSourceVoiceRecognition">Voice-recognition mic</string>
     <string name="suspendMicIdle">Power-save microphone</string>
     <string name="suspendMicIdleSum">In push-to-talk, powers the microphone down while the button is released to save battery. May clip the very start of a transmission if you press and speak instantly.</string>
     <string name="pttSound">Push-to-talk sound</string>

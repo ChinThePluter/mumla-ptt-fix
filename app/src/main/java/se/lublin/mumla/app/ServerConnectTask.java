@@ -20,7 +20,6 @@ package se.lublin.mumla.app;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
-import android.media.MediaRecorder;
 import android.os.AsyncTask;
 
 import java.util.ArrayList;
@@ -66,11 +65,10 @@ public class ServerConnectTask extends AsyncTask<Server, Void, Intent> {
         /* Convert input method defined in settings to an integer format used by Humla. */
         int inputMethod = settings.getHumlaInputMethod();
 
-        // INPUT: handset mode uses the (better) handset mic. OUTPUT: the loudspeaker,
-        // unless the user wants earpiece routing (usesVoiceCallOutput) — decoupled so a
-        // radio can have "handset mic + loud speaker".
-        int audioSource = settings.isHandsetMode() ?
-                MediaRecorder.AudioSource.DEFAULT : MediaRecorder.AudioSource.MIC;
+        // INPUT: the user-chosen mic source ("auto" follows handset mode). OUTPUT: the
+        // loudspeaker, unless the user wants earpiece routing (usesVoiceCallOutput) —
+        // decoupled so a radio can have "handset mic + loud speaker".
+        int audioSource = settings.getAudioSource();
         int audioStream = settings.usesVoiceCallOutput() ?
                 AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC;
 

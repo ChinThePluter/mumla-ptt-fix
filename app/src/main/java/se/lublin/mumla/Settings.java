@@ -19,6 +19,7 @@ package se.lublin.mumla;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.media.MediaRecorder;
 import android.view.Gravity;
 
 import androidx.annotation.NonNull;
@@ -142,6 +143,12 @@ public class Settings {
      *  for INPUT but plays received audio loud on the main speaker). Default on. */
     public static final String PREF_FORCE_SPEAKER = "force_speaker";
     public static final boolean DEFAULT_FORCE_SPEAKER = true;
+
+    /** Which physical microphone / capture path to use, as a {@link MediaRecorder.AudioSource}.
+     *  Stored as a string key ("auto"/"mic"/"voice_comm"/"camcorder"/"voice_recognition");
+     *  "auto" preserves the legacy behaviour (handset mode -> DEFAULT mic, else MIC). */
+    public static final String PREF_MIC_SOURCE = "mic_source";
+    public static final String DEFAULT_MIC_SOURCE = "auto";
 
     /** Power the mic down while push-to-talk is released, to save battery. Opt-in. */
     public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";
@@ -383,6 +390,29 @@ public class Settings {
      */
     public boolean usesVoiceCallOutput() {
         return isHandsetMode() && !isForceSpeaker();
+    }
+
+    /**
+     * The {@link MediaRecorder.AudioSource} to capture from, chosen by the user.
+     * "auto" keeps the legacy behaviour: the (better) handset mic (DEFAULT) in handset mode,
+     * else the main mic (MIC). This is INPUT only and is independent of output routing.
+     */
+    public int getAudioSource() {
+        String source = preferences.getString(PREF_MIC_SOURCE, DEFAULT_MIC_SOURCE);
+        switch (source) {
+            case "mic":
+                return MediaRecorder.AudioSource.MIC;
+            case "voice_comm":
+                return MediaRecorder.AudioSource.VOICE_COMMUNICATION;
+            case "camcorder":
+                return MediaRecorder.AudioSource.CAMCORDER;
+            case "voice_recognition":
+                return MediaRecorder.AudioSource.VOICE_RECOGNITION;
+            case "auto":
+            default:
+                return isHandsetMode() ? MediaRecorder.AudioSource.DEFAULT
+                                       : MediaRecorder.AudioSource.MIC;
+        }
     }
 
     public boolean isSuspendMicWhileIdle() {

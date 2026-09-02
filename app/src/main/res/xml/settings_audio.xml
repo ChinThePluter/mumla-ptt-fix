@@ -35,6 +35,15 @@
         android:defaultValue="false"
         app:iconSpaceReserved="false"/>
 
+    <ListPreference
+        android:key="mic_source"
+        android:title="@string/micSource"
+        android:summary="@string/micSourceSum"
+        android:defaultValue="auto"
+        android:entries="@array/micSourceNames"
+        android:entryValues="@array/micSourceValues"
+        app:iconSpaceReserved="false"/>
+
     <CheckBoxPreference
         android:key="force_speaker"
         android:title="@string/forceSpeaker"

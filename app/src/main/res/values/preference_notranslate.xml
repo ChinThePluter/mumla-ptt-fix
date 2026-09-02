@@ -97,6 +97,22 @@
         <item>system</item>
     </string-array>
 
+    <string-array name="micSourceNames">
+        <item>@string/micSourceAuto</item>
+        <item>@string/micSourceMic</item>
+        <item>@string/micSourceVoiceComm</item>
+        <item>@string/micSourceCamcorder</item>
+        <item>@string/micSourceVoiceRecognition</item>
+    </string-array>
+
+    <string-array name="micSourceValues">
+        <item>auto</item>
+        <item>mic</item>
+        <item>voice_comm</item>
+        <item>camcorder</item>
+        <item>voice_recognition</item>
+    </string-array>
+
     <string name="copyright">Copyright &#169; Daniel Lublin mumla@lublin.se\nCopyright &#169; 2014–2017 Andrew Comminos\nhttps://mumla-app.gitlab.io</string>
     <string name="project_link">https://mumla-app.gitlab.io</string>
     <string name="acknowledgements_link">https://gitlab.com/quite/mumla/-/graphs/master</string>

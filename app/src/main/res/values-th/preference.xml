@@ -96,6 +96,13 @@
     <string name="handsetMode">โหมดโทรศัพท์มือถือ</string>
     <string name="forceSpeaker">บังคับใช้ลำโพงนอก</string>
     <string name="forceSpeakerSum">เล่นเสียงที่รับออกลำโพงนอกเสมอ แม้เปิดโหมดโทรศัพท์ (ยังใช้ไมค์ handset สำหรับพูด) ปิดถ้าต้องการให้เสียงออกลำโพงหูแนบ.</string>
+    <string name="micSource">ไมโครโฟน</string>
+    <string name="micSourceSum">เลือกไมโครโฟน / ช่องรับเสียงที่จะใช้ในการส่งสัญญาณ.</string>
+    <string name="micSourceAuto">อัตโนมัติ (ตามโหมดโทรศัพท์)</string>
+    <string name="micSourceMic">ไมค์หลัก (วิทยุสื่อสาร)</string>
+    <string name="micSourceVoiceComm">ไมค์สื่อสาร (ลดเสียงรบกวน)</string>
+    <string name="micSourceCamcorder">ไมค์กล้องวิดีโอ</string>
+    <string name="micSourceVoiceRecognition">ไมค์สั่งงานด้วยเสียง</string>
     <string name="suspendMicIdle">ประหยัดพลังงานไมโครโฟน</string>
     <string name="suspendMicIdleSum">ในโหมดกดเพื่อพูด (PTT) จะปิดไมโครโฟนขณะปล่อยปุ่มเพื่อประหยัดแบตเตอรี่ อาจตัดเสียงต้นประโยคเล็กน้อยหากกดแล้วพูดทันที.</string>
     <string name="echoCancellationSystem">ระบบ</string>

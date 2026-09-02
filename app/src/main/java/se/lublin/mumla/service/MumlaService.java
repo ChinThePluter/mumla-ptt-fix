@@ -428,6 +428,11 @@ public class MumlaService extends HumlaService implements
                 setProximitySensorOn(isConnectionEstablished() && mSettings.usesVoiceCallOutput());
                 changedExtras.putInt(HumlaService.EXTRAS_AUDIO_STREAM, mSettings.usesVoiceCallOutput() ?
                                      AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
+                // "auto" mic source follows handset mode, so re-apply it when handset toggles.
+                changedExtras.putInt(HumlaService.EXTRAS_AUDIO_SOURCE, mSettings.getAudioSource());
+                break;
+            case Settings.PREF_MIC_SOURCE:
+                changedExtras.putInt(HumlaService.EXTRAS_AUDIO_SOURCE, mSettings.getAudioSource());
                 break;
             case Settings.PREF_THRESHOLD:
                 changedExtras.putFloat(HumlaService.EXTRAS_DETECTION_THRESHOLD,
