@@ -21,7 +21,7 @@
 #
 # Server details come from server-config.sh (or env vars), same as
 # install-and-add-server.sh. Overridable: PTT_KEYCODE (default 142 = F12),
-# HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 25, in %),
+# HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 100, in %),
 # HANDSET_MODE (default true), AUTO_CONNECT_ON_BOOT (default false),
 # DISABLE_SCREEN_LOCK (default true),
 # ENABLE_BG_PTT (default true), CLEAN_REINSTALL (default true),
@@ -54,7 +54,7 @@ SERVER_USERNAME="${SERVER_USERNAME:-myname}"
 SERVER_PASSWORD="${SERVER_PASSWORD:-}"
 PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
 HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
-MIC_VOLUME="${MIC_VOLUME:-25}"           # microphone volume % (100 = 1.0x gain)
+MIC_VOLUME="${MIC_VOLUME:-100}"          # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"    # handset (earpiece mic + earpiece speaker); off = main mic + loudspeaker (walkie-talkie)
 MIC_SOURCE="${MIC_SOURCE:-voice_comm}"  # capture path: auto|mic|voice_comm|camcorder|voice_recognition (voice_comm = noise reduction)
 AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
