@@ -1,0 +1,55 @@
+name: Build Windows POC Installer (.exe)
+
+# Builds windows-installer/mumla_installer.py into a single Windows .exe with
+# adb (+ its DLLs) bundled inside. Download the result from this run's
+# "Artifacts" section. The APK is NOT bundled — drop mumla-foss-debug.apk next
+# to the .exe, or pick it with "Browse" in the app.
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "windows-installer/**"
+      - ".github/workflows/build-windows-installer.yml"
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Download Windows platform-tools (adb)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" -OutFile "pt.zip"
+          Expand-Archive -Path "pt.zip" -DestinationPath "pt" -Force
+          New-Item -ItemType Directory -Force -Path "windows-installer/adb" | Out-Null
+          Copy-Item "pt/platform-tools/adb.exe" "windows-installer/adb/adb.exe"
+          Copy-Item "pt/platform-tools/AdbWinApi.dll" "windows-installer/adb/AdbWinApi.dll"
+          Copy-Item "pt/platform-tools/AdbWinUsbApi.dll" "windows-installer/adb/AdbWinUsbApi.dll"
+
+      - name: Build .exe
+        shell: pwsh
+        working-directory: windows-installer
+        run: |
+          pyinstaller --onefile --windowed --name MumlaPOCInstaller `
+            --add-binary "adb/adb.exe;." `
+            --add-binary "adb/AdbWinApi.dll;." `
+            --add-binary "adb/AdbWinUsbApi.dll;." `
+            mumla_installer.py
+
+      - name: Upload .exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MumlaPOCInstaller-exe
+          path: windows-installer/dist/MumlaPOCInstaller.exe
+          if-no-files-found: error

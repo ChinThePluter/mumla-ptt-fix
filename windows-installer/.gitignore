@@ -1,0 +1,7 @@
+# PyInstaller / build artifacts (produced in CI or locally)
+adb/
+build/
+dist/
+*.spec
+__pycache__/
+*.apk
