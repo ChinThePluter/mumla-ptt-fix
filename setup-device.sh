@@ -60,7 +60,7 @@ MIC_SOURCE="${MIC_SOURCE:-voice_comm}"  # capture path: auto|mic|voice_comm|camc
 GPS_TRACKING="${GPS_TRACKING:-false}"   # report GPS position to a Traccar server (opt-in)
 TRACCAR_HOST="${TRACCAR_HOST:-}"        # Traccar server host/IP (required if GPS_TRACKING=true)
 TRACCAR_PORT="${TRACCAR_PORT:-5055}"    # Traccar OsmAnd protocol port
-GPS_INTERVAL="${GPS_INTERVAL:-300}"     # seconds between GPS reports (bigger = better battery; min 60)
+GPS_INTERVAL="${GPS_INTERVAL:-60}"      # seconds between GPS reports (bigger = better battery; min 60)
 AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)

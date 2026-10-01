@@ -163,7 +163,7 @@ public class Settings {
     public static final String PREF_TRACCAR_PORT = "traccar_port";
     public static final int DEFAULT_TRACCAR_PORT = 5055;
     public static final String PREF_GPS_INTERVAL = "gps_interval_seconds";
-    public static final int DEFAULT_GPS_INTERVAL = 300; // 5 minutes — light on battery
+    public static final int DEFAULT_GPS_INTERVAL = 60; // 1 minute (minimum allowed)
 
     /** Which UI to use: "auto" = keypad "radio" UI on no-touch devices, else "on"/"off". */
     public static final String PREF_RADIO_UI = "radio_ui_mode";

@@ -31,6 +31,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -135,11 +136,14 @@ public class RadioActivity extends AppCompatActivity {
         mTalkingText = findViewById(R.id.radio_talking);
         mPttText = findViewById(R.id.radio_ptt);
 
-        // Focusable "Settings" target: opens the normal settings screen (a D-pad-navigable
-        // preference list). Having a focusable view also lets this window receive key events.
+        // Focusable D-pad targets. "Channels" opens a channel picker; "Settings" opens the
+        // normal preference list. Having focusable views also lets this window receive key
+        // events. Channels gets initial focus (it's the leftmost / primary action).
+        View channels = findViewById(R.id.radio_channels);
+        channels.setOnClickListener(v -> showChannelPicker());
+        channels.requestFocus();
         View settings = findViewById(R.id.radio_settings);
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        settings.requestFocus();
 
         // The provisioned radio has exactly one favourite server; connect to it.
         List<Server> servers = mDatabase.getServers();
@@ -277,6 +281,56 @@ public class RadioActivity extends AppCompatActivity {
         }
         return names.isEmpty() ? getString(R.string.radio_nobody_talking)
                 : android.text.TextUtils.join(", ", names);
+    }
+
+    /**
+     * D-pad-friendly channel picker: lists every channel on the server (root + all
+     * subchannels) in a single-choice dialog; selecting one joins it. Navigable with
+     * the D-pad + ENTER, so it works on the no-touch keypad radios.
+     */
+    private void showChannelPicker() {
+        if (mService == null || !mService.isConnected()) {
+            return;
+        }
+        IHumlaSession session = mService.HumlaSession();
+        IChannel root = session.getRootChannel();
+        if (root == null) {
+            return;
+        }
+        List<IChannel> channels = new ArrayList<>();
+        flattenChannels(root, channels);
+        if (channels.isEmpty()) {
+            return;
+        }
+        IChannel current = session.getSessionChannel();
+        int checked = -1;
+        String[] names = new String[channels.size()];
+        for (int i = 0; i < channels.size(); i++) {
+            IChannel c = channels.get(i);
+            int users = c.getUsers().size();
+            names[i] = users > 0 ? c.getName() + "  (" + users + ")" : c.getName();
+            if (current != null && c.getId() == current.getId()) {
+                checked = i;
+            }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.radio_channel_picker_title)
+                .setSingleChoiceItems(names, checked, (dialog, which) -> {
+                    IChannel target = channels.get(which);
+                    if (mService != null && mService.isConnected()) {
+                        mService.HumlaSession().joinChannel(target.getId());
+                    }
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    /** Depth-first flatten of the channel tree into a flat display list. */
+    private void flattenChannels(IChannel channel, List<IChannel> out) {
+        out.add(channel);
+        for (IChannel sub : channel.getSubchannels()) {
+            flattenChannels(sub, out);
+        }
     }
 
     // --- hardware PTT key (foreground fallback; the accessibility service handles it

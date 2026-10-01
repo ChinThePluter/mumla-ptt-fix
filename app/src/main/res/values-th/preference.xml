@@ -111,7 +111,7 @@
     <string name="traccarPort">พอร์ต Traccar</string>
     <string name="traccarPortSum">พอร์ตโปรโตคอล OsmAnd (ค่าเริ่มต้น 5055).</string>
     <string name="gpsInterval">ความถี่ในการส่ง (วินาที)</string>
-    <string name="gpsIntervalSum">ส่งตำแหน่งบ่อยแค่ไหน ยิ่งนาน ยิ่งประหยัดแบต (ต่ำสุด 60 วิ, ค่าเริ่มต้น 300 วิ).</string>
+    <string name="gpsIntervalSum">ส่งตำแหน่งบ่อยแค่ไหน ยิ่งนาน ยิ่งประหยัดแบต (ต่ำสุด/ค่าเริ่มต้น 60 วิ).</string>
     <string name="suspendMicIdle">ประหยัดพลังงานไมโครโฟน</string>
     <string name="suspendMicIdleSum">ในโหมดกดเพื่อพูด (PTT) จะปิดไมโครโฟนขณะปล่อยปุ่มเพื่อประหยัดแบตเตอรี่ อาจตัดเสียงต้นประโยคเล็กน้อยหากกดแล้วพูดทันที.</string>
     <string name="echoCancellationSystem">ระบบ</string>

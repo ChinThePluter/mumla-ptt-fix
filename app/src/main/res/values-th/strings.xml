@@ -211,4 +211,7 @@
     <string name="radio_hold_to_talk">กดปุ่ม PTT ค้างเพื่อพูด</string>
     <string name="radio_nobody_talking">—</string>
     <string name="radio_open_settings">⚙ ตั้งค่า</string>
+    <string name="radio_open_settings_short">⚙</string>
+    <string name="radio_select_channel">เลือกช่อง</string>
+    <string name="radio_channel_picker_title">เลือกช่อง</string>
 </resources>

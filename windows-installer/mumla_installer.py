@@ -70,7 +70,7 @@ DEFAULTS = dict(
     gps_tracking=False,
     traccar_host="",
     traccar_port="5055",
-    gps_interval="300",
+    gps_interval="60",
 )
 
 # GPS -> Traccar prefs (optional; only written when gps_tracking is on).
@@ -527,7 +527,7 @@ class App(tk.Tk):
         self._entry(gps, 1, "Traccar host / IP", "traccar_host")
         self._entry(gps, 2, "Traccar port", "traccar_port")
         self._entry(gps, 3, "ส่งทุกๆ (วินาที, ต่ำสุด 60)", "gps_interval")
-        ttk.Label(gps, text="* ยิ่งนาน ยิ่งประหยัดแบต (ค่าแนะนำ 300 = 5 นาที)",
+        ttk.Label(gps, text="* ยิ่งนาน ยิ่งประหยัดแบต (ต่ำสุด/ค่าเริ่มต้น 60 วิ = 1 นาที)",
                   foreground="#888").grid(row=4, column=0, columnspan=2, sticky="w", padx=6, pady=4)
 
         # APK row

@@ -30,7 +30,7 @@
         android:key="gps_interval_seconds"
         android:title="@string/gpsInterval"
         android:summary="@string/gpsIntervalSum"
-        android:defaultValue="300"
+        android:defaultValue="60"
         android:dependency="gps_tracking"
         android:inputType="number"
         app:iconSpaceReserved="false"/>

@@ -2,7 +2,7 @@
 
 วิทยุ PNC380 มี GPS/GLONASS/BeiDou อยู่แล้ว แอป S12 Mumla มีตัวส่งพิกัดไป
 **Traccar** server แบบประหยัดแบต (ดู `TraccarReporter.java`): จะขอ GPS fix
-**ครั้งเดียวทุกๆ ช่วงเวลา** (ค่าเริ่มต้น 300 วิ = 5 นาที) แล้วปิด GPS ระหว่างรอบ
+**ครั้งเดียวทุกๆ ช่วงเวลา** (ค่าเริ่มต้น 60 วิ = 1 นาที) แล้วปิด GPS ระหว่างรอบ
 ไม่เปิดค้างตลอด — เบาแบตมาก
 
 - ส่งด้วย **OsmAnd protocol** (HTTP ไปพอร์ต 5055 ของ Traccar)
@@ -47,7 +47,7 @@ sudo ufw allow 5055/tcp
 
 ### ผ่าน setup-device.sh
 ```bash
-GPS_TRACKING=true TRACCAR_HOST=174.138.20.49 TRACCAR_PORT=5055 GPS_INTERVAL=300 \
+GPS_TRACKING=true TRACCAR_HOST=174.138.20.49 TRACCAR_PORT=5055 GPS_INTERVAL=60 \
   SERVER_USERNAME=065 ./setup-device.sh
 ```
 สคริปต์จะ: เขียน prefs (gps_tracking/traccar_host/port/interval), grant สิทธิ์
@@ -61,7 +61,7 @@ Location, และเปิด GPS ของเครื่องให้อ�
 
 ## หมายเหตุ
 
-- **ความถี่**: ต่ำสุด 60 วิ (แอป clamp ให้) ค่าเริ่มต้น 300 วิ ประหยัดแบตดี
+- **ความถี่**: ต่ำสุด/ค่าเริ่มต้น 60 วิ (1 นาที); ตั้งมากขึ้นได้ถ้าอยากประหยัดแบต
   ถ้าต้องการตามรถ/คนที่เคลื่อนเร็วค่อยลดลง (แต่กินแบตมากขึ้น)
 - ต้องอยู่ใน**ที่โล่ง**ช่วงแรกเพื่อจับดาวเทียมครั้งแรก (ถ้าในตึกอาจไม่ได้ fix)
 - ถ้าเครื่องมี PIN ล็อก location อาจถูกปิด — setup-device.sh เปิด location_mode ให้แล้ว

@@ -124,7 +124,7 @@
     <string name="traccarPort">Traccar port</string>
     <string name="traccarPortSum">OsmAnd protocol port (default 5055).</string>
     <string name="gpsInterval">Report interval (seconds)</string>
-    <string name="gpsIntervalSum">How often to send a position. Longer = better battery (minimum 60s, default 300s).</string>
+    <string name="gpsIntervalSum">How often to send a position. Longer = better battery (minimum/default 60s).</string>
     <string name="suspendMicIdle">Power-save microphone</string>
     <string name="suspendMicIdleSum">In push-to-talk, powers the microphone down while the button is released to save battery. May clip the very start of a transmission if you press and speak instantly.</string>
     <string name="pttSound">Push-to-talk sound</string>
