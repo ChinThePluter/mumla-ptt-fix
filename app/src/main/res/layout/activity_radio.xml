@@ -95,7 +95,24 @@
             android:paddingBottom="7dp"
             android:text="@string/radio_select_channel"
             android:textColor="#E6F0F2"
-            android:textSize="16sp" />
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/radio_members"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/radio_settings_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:gravity="center"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:text="@string/radio_members"
+            android:textColor="#E6F0F2"
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/radio_settings"

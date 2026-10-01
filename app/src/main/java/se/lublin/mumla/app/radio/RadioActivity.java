@@ -142,6 +142,8 @@ public class RadioActivity extends AppCompatActivity {
         View channels = findViewById(R.id.radio_channels);
         channels.setOnClickListener(v -> showChannelPicker());
         channels.requestFocus();
+        View members = findViewById(R.id.radio_members);
+        members.setOnClickListener(v -> showMembersPopup());
         View settings = findViewById(R.id.radio_settings);
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
 
@@ -331,6 +333,34 @@ public class RadioActivity extends AppCompatActivity {
         for (IChannel sub : channel.getSubchannels()) {
             flattenChannels(sub, out);
         }
+    }
+
+    /**
+     * Popup listing the members (radio numbers) currently in this radio's channel,
+     * so the operator can see who's on the channel. Read-only; OK to dismiss.
+     */
+    private void showMembersPopup() {
+        if (mService == null || !mService.isConnected()) {
+            return;
+        }
+        IChannel channel = mService.HumlaSession().getSessionChannel();
+        List<String> names = new ArrayList<>();
+        if (channel != null) {
+            for (IUser user : channel.getUsers()) {
+                names.add(user.getName());
+            }
+        }
+        java.util.Collections.sort(names);
+        String title = channel != null
+                ? getString(R.string.radio_members_title) + " — " + channel.getName()
+                : getString(R.string.radio_members_title);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this).setTitle(title);
+        if (names.isEmpty()) {
+            builder.setMessage(R.string.radio_members_empty);
+        } else {
+            builder.setItems(names.toArray(new String[0]), null);
+        }
+        builder.setPositiveButton(android.R.string.ok, null).show();
     }
 
     // --- hardware PTT key (foreground fallback; the accessibility service handles it

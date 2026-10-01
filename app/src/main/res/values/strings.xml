@@ -254,4 +254,7 @@
     <string name="radio_open_settings_short">⚙</string>
     <string name="radio_select_channel">Channel</string>
     <string name="radio_channel_picker_title">Select channel</string>
+    <string name="radio_members">Members</string>
+    <string name="radio_members_title">In this channel</string>
+    <string name="radio_members_empty">Nobody else in this channel</string>
 </resources>

@@ -214,4 +214,7 @@
     <string name="radio_open_settings_short">⚙</string>
     <string name="radio_select_channel">เลือกช่อง</string>
     <string name="radio_channel_picker_title">เลือกช่อง</string>
+    <string name="radio_members">คนในห้อง</string>
+    <string name="radio_members_title">คนในห้องนี้</string>
+    <string name="radio_members_empty">ไม่มีใครอยู่ในห้องนี้</string>
 </resources>
