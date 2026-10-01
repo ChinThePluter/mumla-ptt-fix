@@ -116,9 +116,10 @@ push_in(){ # $1 = local file, $2 = destination path in app dir
 # flush them back over our file the next time it writes (seen on slow devices).
 stop_app(){
   "$ADB" shell am force-stop "$PKG" >/dev/null 2>&1 || true
-  for _ in $(seq 1 15); do
+  # Poll sub-second and return the instant the process is gone (usually <1s).
+  for _ in $(seq 1 30); do
     [ -z "$("$ADB" shell pidof "$PKG" 2>/dev/null | tr -d '\r\n ')" ] && return 0
-    sleep 1
+    sleep 0.3
   done
   return 0
 }
@@ -151,7 +152,7 @@ warned=0
 while [ "$("$ADB" get-state 2>/dev/null || true)" != "device" ]; do
   [ "$("$ADB" devices | awk 'NR>1&&$1!=""{print $2;exit}')" = "unauthorized" ] && [ "$warned" = 0 ] \
     && { err "Device 'unauthorized' — tap 'Allow USB debugging' on the device."; warned=1; }
-  sleep 2
+  sleep 1
 done
 log "Device: $("$ADB" shell getprop ro.product.model 2>/dev/null | tr -d '\r')"
 
@@ -229,9 +230,9 @@ else
   "$ADB" shell am start -n "$GEN_ACT" >/dev/null 2>&1 || true
 fi
 ok=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 40); do
   if have "$DB" && pull "$PREFS" 2>/dev/null | grep -q 'name="certificateId"'; then ok=1; break; fi
-  sleep 1
+  sleep 0.4
 done
 stop_app   # wait until the process is really gone before touching the DB / prefs
 [ "$ok" = 1 ] || { err "Certificate/database not initialized. Open the app once, then re-run."; exit 1; }
@@ -258,7 +259,7 @@ push_in "$TMP/p.xml" "$PREFS"
 # --- 6) launch fresh, then make sure the prefs stuck ----------------------
 stop_app   # guarantee a clean process so the launch reads our file, not a stale map
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
-sleep 4
+sleep 2   # give the app a moment to (re)flush its prefs on launch before we check
 if [ "$(pull "$PREFS" 2>/dev/null | grep -cE 'name="audioInputMethod"|name="talkKey"|name="hidePtt"|name="inputVolume"|name="handset_mode"|name="mic_source"|name="auto_connect_on_boot"')" != 7 ]; then
   log "App re-flushed prefs on launch — re-applying and leaving the app closed."
   stop_app
@@ -286,9 +287,13 @@ if [ "$ENABLE_BG_PTT" = true ]; then
   "$ADB" shell settings put secure enabled_accessibility_services "$cur" >/dev/null 2>&1
   "$ADB" shell settings put secure accessibility_enabled 1 >/dev/null 2>&1
   "$ADB" shell dumpsys deviceidle whitelist +"$PKG" >/dev/null 2>&1 || true
-  sleep 2
-  # The bound service's label shows as "Mumla background PTT key" or the raw class name.
-  if "$ADB" shell dumpsys accessibility 2>/dev/null | grep -qiE "MumlaPTT|Mumla background PTT"; then
+  # Poll for the service to actually bind (usually ~0.5-1s) instead of a fixed wait.
+  bound=0
+  for _ in $(seq 1 10); do
+    if "$ADB" shell dumpsys accessibility 2>/dev/null | grep -qiE "MumlaPTT|Mumla background PTT"; then bound=1; break; fi
+    sleep 0.4
+  done
+  if [ "$bound" = 1 ]; then
     log "  Accessibility service ON (bound), app battery-whitelisted."
     BG_PTT_STATUS="on (accessibility bound + battery whitelist)"
   else
