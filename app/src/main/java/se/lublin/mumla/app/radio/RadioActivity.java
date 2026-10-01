@@ -150,7 +150,7 @@ public class RadioActivity extends AppCompatActivity {
         // The provisioned radio has exactly one favourite server; connect to it.
         List<Server> servers = mDatabase.getServers();
         mFavourite = servers.isEmpty() ? null : servers.get(0);
-        mServerText.setText(mFavourite != null ? mFavourite.getName() : "");
+        mServerText.setText(headerLabel());
         Log.i(TAG, "onCreate favourites=" + servers.size()
                 + " favourite=" + (mFavourite != null ? mFavourite.getName() : "null"));
 
@@ -243,9 +243,21 @@ public class RadioActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Top-line label for the radio screen: this radio's own number (the server
+     * username), NOT the server IP/hostname — we don't want the address on screen.
+     */
+    private String headerLabel() {
+        if (mFavourite == null) {
+            return "";
+        }
+        String user = mFavourite.getUsername();
+        return user != null ? user : "";
+    }
+
     private void updateUi() {
         runOnUiThread(() -> {
-            mServerText.setText(mFavourite != null ? mFavourite.getName() : "");
+            mServerText.setText(headerLabel());
 
             HumlaService.ConnectionState state = mService != null
                     ? mService.getConnectionState() : HumlaService.ConnectionState.DISCONNECTED;
