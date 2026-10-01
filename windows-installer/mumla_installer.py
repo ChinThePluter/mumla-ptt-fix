@@ -67,9 +67,9 @@ DEFAULTS = dict(
     remove_stock_mumla=True,
     neutralize_rival_ptt=True,
     disable_rival_ptt=False,
-    gps_tracking=False,
-    traccar_host="",
-    traccar_port="5055",
+    gps_tracking=True,
+    traccar_host="hytera-monitor.signal12th.com",
+    traccar_port="80",
     gps_interval="60",
 )
 

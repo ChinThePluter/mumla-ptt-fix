@@ -14,6 +14,7 @@
         android:key="traccar_host"
         android:title="@string/traccarHost"
         android:summary="@string/traccarHostSum"
+        android:defaultValue="hytera-monitor.signal12th.com"
         android:dependency="gps_tracking"
         app:iconSpaceReserved="false"/>
 
@@ -21,7 +22,7 @@
         android:key="traccar_port"
         android:title="@string/traccarPort"
         android:summary="@string/traccarPortSum"
-        android:defaultValue="5055"
+        android:defaultValue="80"
         android:dependency="gps_tracking"
         android:inputType="number"
         app:iconSpaceReserved="false"/>

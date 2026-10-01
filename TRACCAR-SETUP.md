@@ -1,5 +1,12 @@
 # GPS tracking ด้วย Traccar (สำหรับ S12 Mumla)
 
+> **สถานะ: ใช้งานจริงแล้ว** — monitor server deploy อยู่บน Proxmox VM `hytera-monitor`
+> เข้า dashboard ที่ **https://hytera-monitor.signal12th.com** (Traccar + web หลัง
+> Cloudflare Tunnel) วิทยุส่งพิกัดเข้าโดเมนนี้ที่ **พอร์ต 80** (nginx ingest จะ route
+> request ที่มี `?lat=` ไป Traccar:5055 ให้อัตโนมัติ — ไม่ต้องเปิดพอร์ต 5055)
+> ค่า default ในแอป/สคริปต์ชี้มาที่ endpoint นี้แล้ว ส่วนด้านล่างเป็นที่มา/วิธีตั้งเองจากศูนย์
+
+
 วิทยุ PNC380 มี GPS/GLONASS/BeiDou อยู่แล้ว แอป S12 Mumla มีตัวส่งพิกัดไป
 **Traccar** server แบบประหยัดแบต (ดู `TraccarReporter.java`): จะขอ GPS fix
 **ครั้งเดียวทุกๆ ช่วงเวลา** (ค่าเริ่มต้น 60 วิ = 1 นาที) แล้วปิด GPS ระหว่างรอบ
@@ -47,7 +54,11 @@ sudo ufw allow 5055/tcp
 
 ### ผ่าน setup-device.sh
 ```bash
-GPS_TRACKING=true TRACCAR_HOST=174.138.20.49 TRACCAR_PORT=5055 GPS_INTERVAL=60 \
+# ค่า GPS เป็น default อยู่แล้ว (host=hytera-monitor.signal12th.com, port=80, ทุก 60 วิ)
+# แค่ provision ตามปกติก็ส่งพิกัดแล้ว:
+SERVER_USERNAME=065 ./setup-device.sh
+# จะ override ก็ได้:
+GPS_TRACKING=true TRACCAR_HOST=hytera-monitor.signal12th.com TRACCAR_PORT=80 GPS_INTERVAL=60 \
   SERVER_USERNAME=065 ./setup-device.sh
 ```
 สคริปต์จะ: เขียน prefs (gps_tracking/traccar_host/port/interval), grant สิทธิ์

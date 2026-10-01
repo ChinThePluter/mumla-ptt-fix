@@ -159,9 +159,12 @@ public class Settings {
     public static final String PREF_GPS_TRACKING = "gps_tracking";
     public static final boolean DEFAULT_GPS_TRACKING = false;
     public static final String PREF_TRACCAR_HOST = "traccar_host";
-    public static final String DEFAULT_TRACCAR_HOST = "";
+    // The fleet's monitoring endpoint (Traccar behind a Cloudflare Tunnel; the
+    // nginx ingest routes OsmAnd "?lat=" requests to Traccar). Port 80 = plain
+    // HTTP through the tunnel (no need to expose 5055).
+    public static final String DEFAULT_TRACCAR_HOST = "hytera-monitor.signal12th.com";
     public static final String PREF_TRACCAR_PORT = "traccar_port";
-    public static final int DEFAULT_TRACCAR_PORT = 5055;
+    public static final int DEFAULT_TRACCAR_PORT = 80;
     public static final String PREF_GPS_INTERVAL = "gps_interval_seconds";
     public static final int DEFAULT_GPS_INTERVAL = 60; // 1 minute (minimum allowed)
 

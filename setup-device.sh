@@ -57,9 +57,9 @@ HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-100}"          # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"    # handset (earpiece mic + earpiece speaker); off = main mic + loudspeaker (walkie-talkie)
 MIC_SOURCE="${MIC_SOURCE:-voice_comm}"  # capture path: auto|mic|voice_comm|camcorder|voice_recognition (voice_comm = noise reduction)
-GPS_TRACKING="${GPS_TRACKING:-false}"   # report GPS position to a Traccar server (opt-in)
-TRACCAR_HOST="${TRACCAR_HOST:-}"        # Traccar server host/IP (required if GPS_TRACKING=true)
-TRACCAR_PORT="${TRACCAR_PORT:-5055}"    # Traccar OsmAnd protocol port
+GPS_TRACKING="${GPS_TRACKING:-true}"    # report GPS position to the Traccar monitor (on by default for the fleet)
+TRACCAR_HOST="${TRACCAR_HOST:-hytera-monitor.signal12th.com}"  # monitor endpoint (Traccar behind Cloudflare Tunnel)
+TRACCAR_PORT="${TRACCAR_PORT:-80}"      # HTTP via the tunnel's nginx ingest (routes ?lat= to Traccar:5055)
 GPS_INTERVAL="${GPS_INTERVAL:-60}"      # seconds between GPS reports (bigger = better battery; min 60)
 AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
