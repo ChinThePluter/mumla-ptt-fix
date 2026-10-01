@@ -23,6 +23,7 @@ import android.util.Log;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Locale;
 
 public class TraccarReporter {
@@ -41,6 +42,8 @@ public class TraccarReporter {
 
     private boolean mRunning;
     private LocationListener mListener;
+    // Current Mumble channel name, attached to each report (set from MumlaService).
+    private volatile String mChannel;
 
     public TraccarReporter(Context ctx, String deviceId, String host, int port, long intervalMs) {
         mContext = ctx.getApplicationContext();
@@ -50,6 +53,11 @@ public class TraccarReporter {
         mHost = host;
         mPort = port;
         mIntervalMs = intervalMs;
+    }
+
+    /** Set the current Mumble channel name to attach to subsequent reports (may be null). */
+    public void setChannel(String channel) {
+        mChannel = channel;
     }
 
     public void start() {
@@ -142,6 +150,11 @@ public class TraccarReporter {
                             loc.getTime() / 1000L,
                             loc.getSpeed() * 1.943844, // m/s -> knots (Traccar expects knots)
                             loc.getBearing(), loc.getAltitude(), batt);
+                    // Attach the current Mumble channel as a Traccar attribute (if any).
+                    String channel = mChannel;
+                    if (channel != null && !channel.isEmpty()) {
+                        url += "&channel=" + URLEncoder.encode(channel, "UTF-8");
+                    }
                     c = (HttpURLConnection) new URL(url).openConnection();
                     c.setConnectTimeout(15000);
                     c.setReadTimeout(15000);

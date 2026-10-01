@@ -45,6 +45,7 @@ import java.util.List;
 import se.lublin.humla.Constants;
 import se.lublin.humla.HumlaService;
 import se.lublin.humla.exception.AudioException;
+import se.lublin.humla.model.IChannel;
 import se.lublin.humla.model.IMessage;
 import se.lublin.humla.model.IUser;
 import se.lublin.humla.model.Message;
@@ -171,6 +172,12 @@ public class MumlaService extends HumlaService implements
                 // Request avatar data if available.
                 requestAvatar(user.getSession());
             }
+        }
+
+        @Override
+        public void onUserJoinedChannel(IUser user, IChannel newChannel, IChannel oldChannel) {
+            // Keep the Traccar reporter's channel in sync when we change channels.
+            updateTraccarChannel();
         }
 
         @Override
@@ -535,6 +542,26 @@ public class MumlaService extends HumlaService implements
         mTraccarReporter = new TraccarReporter(this, deviceId, host,
                 mSettings.getTraccarPort(), mSettings.getGpsIntervalSeconds() * 1000L);
         mTraccarReporter.start();
+        updateTraccarChannel();
+    }
+
+    /** Push the current Mumble channel name into the reporter (attached to GPS reports). */
+    private void updateTraccarChannel() {
+        if (mTraccarReporter == null) {
+            return;
+        }
+        String name = null;
+        if (isConnectionEstablished()) {
+            try {
+                IChannel ch = HumlaSession().getSessionChannel();
+                if (ch != null) {
+                    name = ch.getName();
+                }
+            } catch (Exception ignored) {
+                // not synchronized yet; leave null until the next channel event
+            }
+        }
+        mTraccarReporter.setChannel(name);
     }
 
     private void stopTraccar() {
