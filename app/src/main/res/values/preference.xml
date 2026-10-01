@@ -116,6 +116,15 @@
     <string name="micSourceVoiceComm">Communication mic (noise reduction)</string>
     <string name="micSourceCamcorder">Camcorder mic</string>
     <string name="micSourceVoiceRecognition">Voice-recognition mic</string>
+    <string name="tracking">Location (GPS)</string>
+    <string name="gpsTracking">Report GPS to Traccar</string>
+    <string name="gpsTrackingSum">Send this radio\'s position to a Traccar server while connected. The radio number is used as the device ID.</string>
+    <string name="traccarHost">Traccar server</string>
+    <string name="traccarHostSum">Host or IP of the Traccar server (OsmAnd protocol).</string>
+    <string name="traccarPort">Traccar port</string>
+    <string name="traccarPortSum">OsmAnd protocol port (default 5055).</string>
+    <string name="gpsInterval">Report interval (seconds)</string>
+    <string name="gpsIntervalSum">How often to send a position. Longer = better battery (minimum 60s, default 300s).</string>
     <string name="suspendMicIdle">Power-save microphone</string>
     <string name="suspendMicIdleSum">In push-to-talk, powers the microphone down while the button is released to save battery. May clip the very start of a transmission if you press and speak instantly.</string>
     <string name="pttSound">Push-to-talk sound</string>

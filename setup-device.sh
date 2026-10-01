@@ -57,6 +57,10 @@ HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-100}"          # microphone volume % (100 = 1.0x gain)
 HANDSET_MODE="${HANDSET_MODE:-true}"    # handset (earpiece mic + earpiece speaker); off = main mic + loudspeaker (walkie-talkie)
 MIC_SOURCE="${MIC_SOURCE:-voice_comm}"  # capture path: auto|mic|voice_comm|camcorder|voice_recognition (voice_comm = noise reduction)
+GPS_TRACKING="${GPS_TRACKING:-false}"   # report GPS position to a Traccar server (opt-in)
+TRACCAR_HOST="${TRACCAR_HOST:-}"        # Traccar server host/IP (required if GPS_TRACKING=true)
+TRACCAR_PORT="${TRACCAR_PORT:-5055}"    # Traccar OsmAnd protocol port
+GPS_INTERVAL="${GPS_INTERVAL:-300}"     # seconds between GPS reports (bigger = better battery; min 60)
 AUTO_CONNECT_ON_BOOT="${AUTO_CONNECT_ON_BOOT:-false}" # auto-connect to the server on boot (BootPTTReceiver); opt-in
 DISABLE_SCREEN_LOCK="${DISABLE_SCREEN_LOCK:-true}"  # set device Screen lock = None
 ENABLE_BG_PTT="${ENABLE_BG_PTT:-true}"   # auto-enable accessibility svc + battery whitelist (PTT with screen off)
@@ -120,7 +124,16 @@ stop_app(){
 }
 # Rewrite the three PTT prefs in a pulled prefs file (in $TMP), keeping the rest.
 set_ptt_prefs(){ # $1 = local prefs xml — rewrite our audio prefs, keep the rest
-  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' -e '/name="inputVolume"/d' -e '/name="handset_mode"/d' -e '/name="mic_source"/d' -e '/name="auto_connect_on_boot"/d' "$1"
+  sed -i '' -e '/name="audioInputMethod"/d' -e '/name="talkKey"/d' -e '/name="hidePtt"/d' -e '/name="inputVolume"/d' -e '/name="handset_mode"/d' -e '/name="mic_source"/d' -e '/name="auto_connect_on_boot"/d' \
+    -e '/name="gps_tracking"/d' -e '/name="traccar_host"/d' -e '/name="traccar_port"/d' -e '/name="gps_interval_seconds"/d' "$1"
+  gps_block=''
+  if [ "$GPS_TRACKING" = true ]; then
+    gps_block='    <boolean name="gps_tracking" value="true" />\
+    <string name="traccar_host">'"$TRACCAR_HOST"'</string>\
+    <string name="traccar_port">'"$TRACCAR_PORT"'</string>\
+    <string name="gps_interval_seconds">'"$GPS_INTERVAL"'</string>\
+'
+  fi
   sed -i '' -e 's#</map>#    <string name="audioInputMethod">ptt</string>\
     <int name="talkKey" value="'"$PTT_KEYCODE"'" />\
     <boolean name="hidePtt" value="'"$HIDE_ONSCREEN_PTT"'" />\
@@ -128,7 +141,7 @@ set_ptt_prefs(){ # $1 = local prefs xml — rewrite our audio prefs, keep the re
     <boolean name="handset_mode" value="'"$HANDSET_MODE"'" />\
     <string name="mic_source">'"$MIC_SOURCE"'</string>\
     <boolean name="auto_connect_on_boot" value="'"$AUTO_CONNECT_ON_BOOT"'" />\
-</map>#' "$1"
+'"$gps_block"'</map>#' "$1"
 }
 
 # --- 1) wait for device ----------------------------------------------------
@@ -176,6 +189,17 @@ fi
 # can re-enable the background-PTT accessibility service on every boot — these radios
 # wipe enabled_accessibility_services on boot, which otherwise kills screen-off PTT.
 "$ADB" shell pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS >/dev/null 2>&1 || true
+# GPS -> Traccar: grant location + turn the device's location (GPS) on, so the
+# app's TraccarReporter can get a fix without any on-device dialog/toggle.
+if [ "$GPS_TRACKING" = true ]; then
+  [ -n "$TRACCAR_HOST" ] || { err "GPS_TRACKING=true but TRACCAR_HOST is empty — set TRACCAR_HOST=host"; exit 1; }
+  "$ADB" shell pm grant "$PKG" android.permission.ACCESS_FINE_LOCATION >/dev/null 2>&1 || true
+  "$ADB" shell pm grant "$PKG" android.permission.ACCESS_COARSE_LOCATION >/dev/null 2>&1 || true
+  # location_mode 3 = high accuracy; also flip the legacy providers flag (Android 7.1).
+  "$ADB" shell settings put secure location_mode 3 >/dev/null 2>&1 || true
+  "$ADB" shell settings put secure location_providers_allowed +gps >/dev/null 2>&1 || true
+  "$ADB" shell settings put secure location_providers_allowed +network >/dev/null 2>&1 || true
+fi
 
 # --- 2b) device: turn off the lock screen (Screen lock = None) -------------
 # Device-level setting (not an app pref). `locksettings set-disabled true` maps
@@ -226,7 +250,7 @@ push_in "$TMP/mumble.db" "$DB"
 "$ADB" shell run-as "$PKG" rm -f "${DB}-journal" "${DB}-wal" "${DB}-shm" 2>/dev/null || true
 
 # --- 5) push-to-talk + PTT key --------------------------------------------
-log "Setting push-to-talk (key $PTT_KEYCODE=F12), hide button = $HIDE_ONSCREEN_PTT, mic volume = $MIC_VOLUME%, handset mode = $HANDSET_MODE, mic source = $MIC_SOURCE..."
+log "Setting push-to-talk (key $PTT_KEYCODE=F12), hide button = $HIDE_ONSCREEN_PTT, mic volume = $MIC_VOLUME%, handset mode = $HANDSET_MODE, mic source = $MIC_SOURCE$([ "$GPS_TRACKING" = true ] && echo ", GPS->Traccar $TRACCAR_HOST:$TRACCAR_PORT every ${GPS_INTERVAL}s")..."
 pull "$PREFS" > "$TMP/p.xml"
 set_ptt_prefs "$TMP/p.xml"
 push_in "$TMP/p.xml" "$PREFS"

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <CheckBoxPreference
+        android:key="gps_tracking"
+        android:title="@string/gpsTracking"
+        android:summary="@string/gpsTrackingSum"
+        android:defaultValue="false"
+        app:iconSpaceReserved="false"/>
+
+    <EditTextPreference
+        android:key="traccar_host"
+        android:title="@string/traccarHost"
+        android:summary="@string/traccarHostSum"
+        android:dependency="gps_tracking"
+        app:iconSpaceReserved="false"/>
+
+    <EditTextPreference
+        android:key="traccar_port"
+        android:title="@string/traccarPort"
+        android:summary="@string/traccarPortSum"
+        android:defaultValue="5055"
+        android:dependency="gps_tracking"
+        android:inputType="number"
+        app:iconSpaceReserved="false"/>
+
+    <EditTextPreference
+        android:key="gps_interval_seconds"
+        android:title="@string/gpsInterval"
+        android:summary="@string/gpsIntervalSum"
+        android:defaultValue="300"
+        android:dependency="gps_tracking"
+        android:inputType="number"
+        app:iconSpaceReserved="false"/>
+
+</PreferenceScreen>

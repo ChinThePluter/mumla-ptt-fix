@@ -17,6 +17,10 @@
         app:title="@string/appearance"
         app:fragment="se.lublin.mumla.preference.AppearanceSettingsFragment"
         app:iconSpaceReserved="false" />
+    <Preference app:key="tracking_settings"
+        app:title="@string/tracking"
+        app:fragment="se.lublin.mumla.preference.TrackingSettingsFragment"
+        app:iconSpaceReserved="false" />
     <Preference app:key="about_settings"
         app:title="@string/about"
         app:fragment="se.lublin.mumla.preference.AboutSettingsFragment"

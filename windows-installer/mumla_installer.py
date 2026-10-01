@@ -67,7 +67,14 @@ DEFAULTS = dict(
     remove_stock_mumla=True,
     neutralize_rival_ptt=True,
     disable_rival_ptt=False,
+    gps_tracking=False,
+    traccar_host="",
+    traccar_port="5055",
+    gps_interval="300",
 )
+
+# GPS -> Traccar prefs (optional; only written when gps_tracking is on).
+GPS_KEYS = ["gps_tracking", "traccar_host", "traccar_port", "gps_interval_seconds"]
 
 
 # --- adb plumbing ----------------------------------------------------------
@@ -189,7 +196,7 @@ def rewrite_prefs(xml, cfg):
     """Drop our managed keys, then inject fresh values before </map>."""
     kept = []
     for line in xml.splitlines():
-        if any(f'name="{k}"' in line for k in PREF_KEYS):
+        if any(f'name="{k}"' in line for k in PREF_KEYS + GPS_KEYS):
             continue
         kept.append(line)
     xml = "\n".join(kept)
@@ -202,8 +209,15 @@ def rewrite_prefs(xml, cfg):
         f'    <boolean name="force_speaker" value="{str(cfg["force_speaker"]).lower()}" />\n'
         f'    <string name="mic_source">{cfg["mic_source"]}</string>\n'
         f'    <boolean name="auto_connect_on_boot" value="{str(cfg["auto_connect_on_boot"]).lower()}" />\n'
-        f'</map>'
     )
+    if cfg.get("gps_tracking"):
+        block += (
+            f'    <boolean name="gps_tracking" value="true" />\n'
+            f'    <string name="traccar_host">{cfg["traccar_host"]}</string>\n'
+            f'    <string name="traccar_port">{cfg["traccar_port"]}</string>\n'
+            f'    <string name="gps_interval_seconds">{cfg["gps_interval"]}</string>\n'
+        )
+    block += '</map>'
     if "</map>" in xml:
         xml = xml.replace("</map>", block, 1)
     else:
@@ -286,6 +300,12 @@ class Provisioner:
         # grants
         self.adb.run("shell", "pm", "grant", PKG, "android.permission.RECORD_AUDIO")
         self.adb.run("shell", "pm", "grant", PKG, "android.permission.WRITE_SECURE_SETTINGS")
+        if cfg["gps_tracking"]:
+            self.adb.run("shell", "pm", "grant", PKG, "android.permission.ACCESS_FINE_LOCATION")
+            self.adb.run("shell", "pm", "grant", PKG, "android.permission.ACCESS_COARSE_LOCATION")
+            self.adb.run("shell", "settings", "put", "secure", "location_mode", "3")
+            self.adb.run("shell", "settings", "put", "secure", "location_providers_allowed", "+gps")
+            self.adb.run("shell", "settings", "put", "secure", "location_providers_allowed", "+network")
 
         # 2b) lock screen ----------------------------------------------------
         if cfg["disable_screen_lock"]:
@@ -500,6 +520,16 @@ class App(tk.Tk):
         self._check(opt, 4, "จัดการแอพ PTT คู่แข่ง (Xin POC ฯลฯ)", "neutralize_rival_ptt")
         self._check(opt, 5, "ปิดแอพคู่แข่งถาวร (disable-user)", "disable_rival_ptt")
 
+        # --- GPS / Traccar tab ---
+        gps = ttk.Frame(nb)
+        nb.add(gps, text="GPS / Traccar")
+        self._check(gps, 0, "ส่งพิกัด GPS ไป Traccar", "gps_tracking")
+        self._entry(gps, 1, "Traccar host / IP", "traccar_host")
+        self._entry(gps, 2, "Traccar port", "traccar_port")
+        self._entry(gps, 3, "ส่งทุกๆ (วินาที, ต่ำสุด 60)", "gps_interval")
+        ttk.Label(gps, text="* ยิ่งนาน ยิ่งประหยัดแบต (ค่าแนะนำ 300 = 5 นาที)",
+                  foreground="#888").grid(row=4, column=0, columnspan=2, sticky="w", padx=6, pady=4)
+
         # APK row
         apk = ttk.Frame(self)
         apk.pack(fill="x", **pad)
@@ -611,6 +641,9 @@ class App(tk.Tk):
             return
         if not cfg["server_host"] or not cfg["server_port"].isdigit():
             self.log("[!] host/port ไม่ถูกต้อง")
+            return
+        if cfg["gps_tracking"] and not cfg["traccar_host"]:
+            self.log("[!] เปิด GPS->Traccar แต่ยังไม่ได้ใส่ Traccar host")
             return
 
         self.cancel_event.clear()

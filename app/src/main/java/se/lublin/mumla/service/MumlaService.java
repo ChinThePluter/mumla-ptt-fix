@@ -48,6 +48,7 @@ import se.lublin.humla.exception.AudioException;
 import se.lublin.humla.model.IMessage;
 import se.lublin.humla.model.IUser;
 import se.lublin.humla.model.Message;
+import se.lublin.humla.model.Server;
 import se.lublin.humla.model.TalkState;
 import se.lublin.humla.util.HumlaException;
 import se.lublin.humla.util.HumlaObserver;
@@ -116,6 +117,9 @@ public class MumlaService extends HumlaService implements
 
     private BroadcastReceiver mTalkReceiver;
 
+    // Additive: battery-friendly GPS -> Traccar reporter (null unless enabled + connected).
+    private TraccarReporter mTraccarReporter;
+
     private HumlaObserver mObserver = new HumlaObserver() {
         @Override
         public void onConnecting() {
@@ -142,10 +146,12 @@ public class MumlaService extends HumlaService implements
                 mNotification.setActionsShown(true);
                 mNotification.show();
             }
+            startTraccarIfEnabled();
         }
 
         @Override
         public void onDisconnected(HumlaException e) {
+            stopTraccar();
             if (mNotification != null) {
                 mNotification.hide();
                 mNotification = null;
@@ -343,6 +349,7 @@ public class MumlaService extends HumlaService implements
         }
 
         unregisterObserver(mObserver);
+        stopTraccar();
         if(mTTS != null) mTTS.shutdown();
         mMessageLog = null;
         mMessageNotification.dismiss();
@@ -434,6 +441,12 @@ public class MumlaService extends HumlaService implements
             case Settings.PREF_MIC_SOURCE:
                 changedExtras.putInt(HumlaService.EXTRAS_AUDIO_SOURCE, mSettings.getAudioSource());
                 break;
+            case Settings.PREF_GPS_TRACKING:
+            case Settings.PREF_TRACCAR_HOST:
+            case Settings.PREF_TRACCAR_PORT:
+            case Settings.PREF_GPS_INTERVAL:
+                startTraccarIfEnabled(); // restart with the new settings (no-op if disabled)
+                break;
             case Settings.PREF_THRESHOLD:
                 changedExtras.putFloat(HumlaService.EXTRAS_DETECTION_THRESHOLD,
                         mSettings.getDetectionThreshold());
@@ -499,6 +512,35 @@ public class MumlaService extends HumlaService implements
 
         if (requiresReconnect && isConnectionEstablished()) {
             Toast.makeText(this, R.string.change_requires_reconnect, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * (Re)start the GPS -> Traccar reporter if tracking is enabled and we're
+     * connected (the device id is the connected server's username). Always stops
+     * any existing reporter first, so this doubles as "apply new settings".
+     */
+    private void startTraccarIfEnabled() {
+        stopTraccar();
+        if (!mSettings.isGpsTrackingEnabled() || !isConnectionEstablished()) {
+            return;
+        }
+        Server server = getTargetServer();
+        String deviceId = server != null ? server.getUsername() : null;
+        String host = mSettings.getTraccarHost();
+        if (deviceId == null || deviceId.isEmpty() || host.isEmpty()) {
+            Log.w(TAG, "GPS tracking enabled but device id / Traccar host missing — not starting");
+            return;
+        }
+        mTraccarReporter = new TraccarReporter(this, deviceId, host,
+                mSettings.getTraccarPort(), mSettings.getGpsIntervalSeconds() * 1000L);
+        mTraccarReporter.start();
+    }
+
+    private void stopTraccar() {
+        if (mTraccarReporter != null) {
+            mTraccarReporter.stop();
+            mTraccarReporter = null;
         }
     }
 

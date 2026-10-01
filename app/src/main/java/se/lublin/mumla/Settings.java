@@ -154,6 +154,17 @@ public class Settings {
     public static final String PREF_SUSPEND_MIC_IDLE = "suspend_mic_idle";
     public static final boolean DEFAULT_SUSPEND_MIC_IDLE = false;
 
+    /** Report GPS position to a Traccar server (OsmAnd protocol). Opt-in, battery-friendly
+     *  (a single fix every {@link #PREF_GPS_INTERVAL} seconds, GPS off in between). */
+    public static final String PREF_GPS_TRACKING = "gps_tracking";
+    public static final boolean DEFAULT_GPS_TRACKING = false;
+    public static final String PREF_TRACCAR_HOST = "traccar_host";
+    public static final String DEFAULT_TRACCAR_HOST = "";
+    public static final String PREF_TRACCAR_PORT = "traccar_port";
+    public static final int DEFAULT_TRACCAR_PORT = 5055;
+    public static final String PREF_GPS_INTERVAL = "gps_interval_seconds";
+    public static final int DEFAULT_GPS_INTERVAL = 300; // 5 minutes — light on battery
+
     /** Which UI to use: "auto" = keypad "radio" UI on no-touch devices, else "on"/"off". */
     public static final String PREF_RADIO_UI = "radio_ui_mode";
     public static final String DEFAULT_RADIO_UI = "auto";
@@ -417,6 +428,33 @@ public class Settings {
 
     public boolean isSuspendMicWhileIdle() {
         return preferences.getBoolean(PREF_SUSPEND_MIC_IDLE, DEFAULT_SUSPEND_MIC_IDLE);
+    }
+
+    public boolean isGpsTrackingEnabled() {
+        return preferences.getBoolean(PREF_GPS_TRACKING, DEFAULT_GPS_TRACKING);
+    }
+
+    public String getTraccarHost() {
+        return preferences.getString(PREF_TRACCAR_HOST, DEFAULT_TRACCAR_HOST).trim();
+    }
+
+    public int getTraccarPort() {
+        return parseIntSafe(preferences.getString(PREF_TRACCAR_PORT, null), DEFAULT_TRACCAR_PORT);
+    }
+
+    /** GPS report interval in seconds; clamped to a sane minimum to protect the battery. */
+    public int getGpsIntervalSeconds() {
+        int v = parseIntSafe(preferences.getString(PREF_GPS_INTERVAL, null), DEFAULT_GPS_INTERVAL);
+        return Math.max(60, v);
+    }
+
+    private static int parseIntSafe(String s, int fallback) {
+        if (s == null) return fallback;
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     public String getRadioUiMode() {

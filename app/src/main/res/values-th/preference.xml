@@ -103,6 +103,15 @@
     <string name="micSourceVoiceComm">ไมค์สื่อสาร (ลดเสียงรบกวน)</string>
     <string name="micSourceCamcorder">ไมค์กล้องวิดีโอ</string>
     <string name="micSourceVoiceRecognition">ไมค์สั่งงานด้วยเสียง</string>
+    <string name="tracking">ตำแหน่ง (GPS)</string>
+    <string name="gpsTracking">ส่งพิกัด GPS ไป Traccar</string>
+    <string name="gpsTrackingSum">ส่งตำแหน่งของวิทยุเครื่องนี้ไปยัง Traccar server ขณะเชื่อมต่ออยู่ โดยใช้เลขเครื่องเป็น device ID.</string>
+    <string name="traccarHost">Traccar server</string>
+    <string name="traccarHostSum">Host หรือ IP ของ Traccar server (โปรโตคอล OsmAnd).</string>
+    <string name="traccarPort">พอร์ต Traccar</string>
+    <string name="traccarPortSum">พอร์ตโปรโตคอล OsmAnd (ค่าเริ่มต้น 5055).</string>
+    <string name="gpsInterval">ความถี่ในการส่ง (วินาที)</string>
+    <string name="gpsIntervalSum">ส่งตำแหน่งบ่อยแค่ไหน ยิ่งนาน ยิ่งประหยัดแบต (ต่ำสุด 60 วิ, ค่าเริ่มต้น 300 วิ).</string>
     <string name="suspendMicIdle">ประหยัดพลังงานไมโครโฟน</string>
     <string name="suspendMicIdleSum">ในโหมดกดเพื่อพูด (PTT) จะปิดไมโครโฟนขณะปล่อยปุ่มเพื่อประหยัดแบตเตอรี่ อาจตัดเสียงต้นประโยคเล็กน้อยหากกดแล้วพูดทันที.</string>
     <string name="echoCancellationSystem">ระบบ</string>
