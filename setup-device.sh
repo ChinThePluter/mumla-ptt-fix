@@ -19,6 +19,11 @@
 #      boot auto-start on Android 7.1). Set DISABLE_RIVAL_PTT=true to disable them
 #      entirely instead (reliable no-autostart; re-enable with ./pocxin.sh on).
 #
+# Usage:
+#   ./setup-device.sh [DEVICE_NUMBER]     # e.g. ./setup-device.sh 071
+# The optional DEVICE_NUMBER is the radio's Mumble username. Server host/port/
+# password come from server-config.sh (or env vars) as before.
+#
 # Server details come from server-config.sh (or env vars), same as
 # install-and-add-server.sh. Overridable: PTT_KEYCODE (default 142 = F12),
 # HIDE_ONSCREEN_PTT (default true), MIC_VOLUME (default 100, in %),
@@ -52,6 +57,12 @@ SERVER_HOST="${SERVER_HOST:-mumble.example.com}"
 SERVER_PORT="${SERVER_PORT:-64738}"
 SERVER_USERNAME="${SERVER_USERNAME:-myname}"
 SERVER_PASSWORD="${SERVER_PASSWORD:-}"
+# Shorthand: the first positional arg is the device/radio number (its Mumble
+# username), e.g.  ./setup-device.sh 071  ==  SERVER_USERNAME=071 ./setup-device.sh
+# It overrides server-config.sh; host/port/password still come from there.
+if [ "${1-}" != "" ]; then
+  SERVER_USERNAME="$1"
+fi
 PTT_KEYCODE="${PTT_KEYCODE:-142}"        # 142 = KEYCODE_F12
 HIDE_ONSCREEN_PTT="${HIDE_ONSCREEN_PTT:-true}"  # hide the on-screen talk button
 MIC_VOLUME="${MIC_VOLUME:-100}"          # microphone volume % (100 = 1.0x gain)
